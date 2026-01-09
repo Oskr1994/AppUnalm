@@ -216,7 +216,7 @@ export default function Persons() {
       <Navbar />
       <div className="container mt-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2>Gestión Peatonal</h2>
+          <h2>Gestión Vehicular</h2>
           {canEdit && (
             <button
               className="btn btn-primary"
