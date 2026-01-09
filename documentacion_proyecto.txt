@@ -1,0 +1,78 @@
+# Documentación del Proyecto APP_UNALM
+
+## 📋 Descripción General
+Aplicación web para la gestión de personas y accesos en el sistema HikCentral Professional. Permite administrar usuarios, personas, niveles de acceso y reconocimiento facial a través de una interfaz moderna.
+
+## 🏗️ Arquitectura
+- **Backend**: FastAPI (Python) con SQLAlchemy, autenticación JWT y integración con API de HikCentral
+- **Frontend**: React + Vite con Bootstrap, reconocimiento facial (face-api.js) y navegación con React Router
+- **Base de datos**: SQLite (configurable para otros motores)
+
+## 🛠️ Tecnologías Principales
+### Backend
+- FastAPI, SQLAlchemy, Pydantic
+- Autenticación JWT con passlib y python-jose
+- Cliente HTTP para HikCentral API
+
+### Frontend
+- React 19, Vite, Bootstrap 5
+- Axios para llamadas API
+- face-api.js para reconocimiento facial
+- React Router para navegación
+
+## 🚀 Funcionalidades
+- 🔐 Sistema de autenticación con roles (admin, operador, viewer)
+- 👥 Gestión completa de personas (CRUD)
+- 🔑 Asignación de niveles de acceso
+- 📊 Dashboard administrativo
+- 📷 Reconocimiento facial para peatones
+- 🏢 Gestión de organizaciones y grupos
+
+## 📁 Estructura del Proyecto
+```
+APP_UNALM/
+├── backend/              # API FastAPI
+│   ├── app/
+│   │   ├── main.py       # Punto de entrada
+│   │   ├── models.py     # Modelos BD
+│   │   ├── routers/      # Endpoints API
+│   │   └── hikcentral.py # Cliente HikCentral
+│   └── requirements.txt
+├── frontend/             # Aplicación React
+│   ├── src/
+│   │   ├── pages/        # Páginas (Login, Dashboard, etc.)
+│   │   ├── components/   # Componentes reutilizables
+│   │   └── services/     # Servicios API
+│   └── package.json
+└── INSTRUCCIONES_INICIO.md  # Guía de instalación
+```
+
+## 🔧 Instalación y Ejecución
+### Backend
+```bash
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev -- --host
+```
+
+## 🌐 Acceso
+- **Backend API**: http://localhost:8000/docs (Swagger UI)
+- **Frontend**: http://localhost:5174
+- **Usuario admin por defecto**: admin / admin123
+
+## 📝 Notas
+- Requiere credenciales de HikCentral en archivo `.env`
+- Configurado para acceso desde red local
+- Incluye modelos de IA para detección facial pre-entrenados
+- Sistema de roles para control de permisos
+
+Para instrucciones detalladas, consulta `INSTRUCCIONES_INICIO.md`.

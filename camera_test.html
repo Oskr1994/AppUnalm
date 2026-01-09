@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Cámara</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        video { border: 1px solid #ccc; max-width: 100%; }
+        button { margin: 5px; padding: 10px 15px; }
+        .container { max-width: 600px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prueba de Acceso a Cámara</h1>
+        <p>Esta página prueba si tu navegador puede acceder a la cámara.</p>
+
+        <div>
+            <button id="startBtn">Iniciar Cámara</button>
+            <button id="stopBtn">Detener Cámara</button>
+            <button id="captureBtn">Capturar Foto</button>
+        </div>
+
+        <div id="status"></div>
+
+        <video id="video" autoplay muted playsinline style="display: none;"></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+
+        <div id="photoContainer" style="margin-top: 20px;"></div>
+
+        <script>
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const status = document.getElementById('status');
+            const photoContainer = document.getElementById('photoContainer');
+            let stream = null;
+
+            function log(message) {
+                console.log(message);
+                status.textContent = message;
+            }
+
+            async function startCamera() {
+                try {
+                    log('Verificando contexto seguro...');
+                    if (!window.isSecureContext) {
+                        log('ERROR: No estás en un contexto seguro (HTTPS). La cámara requiere HTTPS.');
+                        return;
+                    }
+
+                    log('Verificando soporte de getUserMedia...');
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        log('ERROR: Tu navegador no soporta getUserMedia.');
+                        return;
+                    }
+
+                    log('Solicitando permisos de cámara...');
+                    const constraints = {
+                        video: {
+                            facingMode: 'user',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
+                    };
+
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    log('Permisos concedidos. Iniciando video...');
+
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+
+                    video.onloadedmetadata = () => {
+                        log('Video listo. Reproduciendo...');
+                        video.play().then(() => {
+                            log('¡Cámara funcionando correctamente!');
+                        }).catch(err => {
+                            log('ERROR al reproducir video: ' + err.message);
+                        });
+                    };
+
+                } catch (error) {
+                    console.error('Error completo:', error);
+                    if (error.name === 'NotAllowedError') {
+                        log('ERROR: Permiso denegado. Haz clic en el icono de la cámara en la barra de direcciones.');
+                    } else if (error.name === 'NotFoundError') {
+                        log('ERROR: No se encontró cámara.');
+                    } else {
+                        log('ERROR: ' + error.message);
+                    }
+                }
+            }
+
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                video.style.display = 'none';
+                log('Cámara detenida.');
+            }
+
+            function capturePhoto() {
+                if (!video.videoWidth || !video.videoHeight) {
+                    log('ERROR: Video no está listo para captura.');
+                    return;
+                }
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+                // Mostrar la foto
+                photoContainer.innerHTML = `<img src="${dataUrl}" style="max-width: 300px; border: 1px solid #ccc;">`;
+                log('Foto capturada exitosamente.');
+            }
+
+            document.getElementById('startBtn').addEventListener('click', startCamera);
+            document.getElementById('stopBtn').addEventListener('click', stopCamera);
+            document.getElementById('captureBtn').addEventListener('click', capturePhoto);
+
+            // Auto-iniciar si es localhost
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                log('Detectado localhost - iniciando cámara automáticamente...');
+                setTimeout(startCamera, 1000);
+            }
+        </script>
+    </div>
+</body>
+</html>
