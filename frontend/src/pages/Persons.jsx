@@ -8,6 +8,7 @@ export default function Persons() {
   const [persons, setPersons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const [organizations, setOrganizations] = useState([]);
   const [accessLevels, setAccessLevels] = useState([]);
   const [formData, setFormData] = useState({
@@ -21,7 +22,9 @@ export default function Persons() {
     effectiveDate: '',  // Fecha de inicio
     expiredDate: '',  // Fecha de fin
     orgIndexCode: '1',
+    photo: '',  // Foto en base64
   });
+  const [photoPreview, setPhotoPreview] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +35,8 @@ export default function Persons() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [editData, setEditData] = useState({});
+  const [cameraSize, setCameraSize] = useState('normal'); // 'normal' o 'large'
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   useEffect(() => {
     loadPersons();
@@ -50,6 +55,70 @@ export default function Persons() {
       loadPersons();
     }
   }, [searchTerm]);
+
+  // Efecto para inicializar la cámara cuando se abre el modal
+  useEffect(() => {
+    if (showCameraModal) {
+      initializeCamera();
+    }
+  }, [showCameraModal]);
+
+  const initializeCamera = async () => {
+    const video = document.getElementById('camera-video');
+    const status = document.getElementById('camera-status');
+    const captureBtn = document.getElementById('capture-btn');
+
+    if (!video || !status || !captureBtn) return;
+
+    try {
+      status.textContent = 'Verificando contexto seguro...';
+      if (!window.isSecureContext) {
+        status.textContent = 'ERROR: No estás en un contexto seguro (HTTPS). La cámara requiere HTTPS.';
+        return;
+      }
+
+      status.textContent = 'Verificando soporte de getUserMedia...';
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        status.textContent = 'ERROR: Tu navegador no soporta getUserMedia.';
+        return;
+      }
+
+      status.textContent = 'Solicitando permisos de cámara...';
+      const constraints = {
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      window.cameraStream = stream;
+      status.textContent = 'Permisos concedidos. Iniciando video...';
+
+      video.srcObject = stream;
+      video.style.display = 'block';
+
+      video.onloadedmetadata = () => {
+        status.textContent = '¡Cámara funcionando correctamente!';
+        captureBtn.disabled = false;
+        video.play().catch(err => {
+          status.textContent = 'ERROR al reproducir video: ' + err.message;
+        });
+      };
+
+    } catch (error) {
+      console.error('Error completo:', error);
+      if (error.name === 'NotAllowedError') {
+        status.textContent = 'ERROR: Permiso denegado. Haz clic en el icono de la cámara en la barra de direcciones.';
+      } else if (error.name === 'NotFoundError') {
+        status.textContent = 'ERROR: No se encontró cámara.';
+      } else {
+        status.textContent = 'ERROR: ' + error.message;
+      }
+      captureBtn.disabled = true;
+    }
+  };
 
   const loadPersons = async () => {
     try {
@@ -94,6 +163,47 @@ export default function Persons() {
     }
   };
 
+  // Funciones para la cámara
+  const openCamera = () => {
+    setShowCameraModal(true);
+  };
+
+  const closeCamera = () => {
+    setShowCameraModal(false);
+    setCameraSize('normal'); // Resetear tamaño al cerrar
+    // Detener stream de cámara si existe
+    if (window.cameraStream) {
+      window.cameraStream.getTracks().forEach(track => track.stop());
+      window.cameraStream = null;
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    if (video && canvas) {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convertir a base64
+      const photoData = canvas.toDataURL('image/jpeg', 0.8);
+      setFormData({ ...formData, photo: photoData });
+      setPhotoPreview(photoData);
+      closeCamera();
+    }
+  };
+
+  const removePhoto = () => {
+    setFormData({ ...formData, photo: '' });
+    setPhotoPreview('');
+  };
+
+  const toggleCameraSize = () => {
+    setCameraSize(cameraSize === 'normal' ? 'large' : 'normal');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -126,7 +236,9 @@ export default function Persons() {
           effectiveDate: '',
           expiredDate: '',
           orgIndexCode: '1',
+          photo: '',
         });
+        setPhotoPreview('');
         loadPersons();
       }
     } catch (error) {
@@ -536,6 +648,40 @@ export default function Persons() {
                     </div>
 
                     <div className="mb-3">
+                      <label className="form-label">Foto</label>
+                      <div className="d-flex align-items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-outline-primary"
+                          onClick={openCamera}
+                        >
+                          <i className="bi bi-camera me-2"></i>
+                          Tomar Foto
+                        </button>
+                        {photoPreview && (
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={removePhoto}
+                          >
+                            <i className="bi bi-trash me-1"></i>
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                      {photoPreview && (
+                        <div className="mt-2">
+                          <img
+                            src={photoPreview}
+                            alt="Vista previa"
+                            className="img-thumbnail"
+                            style={{ maxWidth: '200px', maxHeight: '200px' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mb-3">
                       <label className="form-label">Placa del Vehículo</label>
                       <input
                         type="text"
@@ -596,6 +742,74 @@ export default function Persons() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Cámara para tomar foto */}
+        {showCameraModal && (
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+            <div className="modal-dialog modal-xl modal-fullscreen">
+              <div className="modal-content" style={{ backgroundColor: '#000' }}>
+                <div className="modal-header border-0">
+                  <h5 className="modal-title text-white">Tomar Foto</h5>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={closeCamera}
+                  ></button>
+                </div>
+                <div className="modal-body d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '70vh' }}>
+                  <div className="text-center mb-4">
+                    <video
+                      id="camera-video"
+                      autoPlay
+                      muted
+                      playsInline
+                      style={{
+                        width: cameraSize === 'large' ? '90vw' : '100%',
+                        maxWidth: cameraSize === 'large' ? 'none' : '100%',
+                        height: cameraSize === 'large' ? '70vh' : '60vh',
+                        maxHeight: cameraSize === 'large' ? 'none' : '60vh',
+                        border: '2px solid #fff',
+                        borderRadius: '8px',
+                        boxShadow: '0 0 20px rgba(255,255,255,0.3)',
+                        objectFit: 'cover'
+                      }}
+                    ></video>
+                    <canvas id="camera-canvas" style={{ display: 'none' }}></canvas>
+                  </div>
+                  <div className="d-flex gap-3 justify-content-center">
+                    <button
+                      type="button"
+                      className="btn btn-info btn-lg"
+                      onClick={toggleCameraSize}
+                      title={cameraSize === 'normal' ? 'Agrandar vista' : 'Reducir vista'}
+                    >
+                      <i className={`bi ${cameraSize === 'normal' ? 'bi-arrows-fullscreen' : 'bi-arrows-angle-contract'} me-2`}></i>
+                      {cameraSize === 'normal' ? 'Agrandar' : 'Reducir'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-success btn-lg"
+                      onClick={capturePhoto}
+                      id="capture-btn"
+                      disabled
+                    >
+                      <i className="bi bi-camera me-2"></i>
+                      Capturar Foto
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-lg"
+                      onClick={closeCamera}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  <div id="camera-status" className="mt-3 text-white"></div>
+                </div>
               </div>
             </div>
           </div>
