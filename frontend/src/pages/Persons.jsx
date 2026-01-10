@@ -36,6 +36,10 @@ export default function Persons() {
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [editData, setEditData] = useState({});
   const [cameraSize, setCameraSize] = useState('normal'); // 'normal' o 'large'
+<<<<<<< HEAD
+=======
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+>>>>>>> 69b9cd5d664057455299bd67b0605b1077f65a54
 
   useEffect(() => {
     loadPersons();
