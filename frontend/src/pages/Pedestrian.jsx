@@ -19,7 +19,9 @@ export default function Pedestrian() {
     phoneNo: '',
     orgIndexCode: '1',
   });
+  const [selectedAccessGroups, setSelectedAccessGroups] = useState([]);
   const [photoDataUrl, setPhotoDataUrl] = useState(null);
+  const [cameraLarge, setCameraLarge] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +32,157 @@ export default function Pedestrian() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [editData, setEditData] = useState({});
+  const [editPhotoDataUrl, setEditPhotoDataUrl] = useState(null);
+  const [editCameraReady, setEditCameraReady] = useState(false);
+  const [editCameraError, setEditCameraError] = useState('');
+  const [editCameraLarge, setEditCameraLarge] = useState(false);
+  const editVideoRef = useRef(null);
+  const editCanvasRef = useRef(null);
+  const editOverlayCanvasRef = useRef(null);
+  const editStreamRef = useRef(null);
+  const editAnimationRef = useRef(null);
+    // Funciones para cámara en edición
+    const startEditCamera = async () => {
+      try {
+        setEditCameraError('');
+        if (!window.isSecureContext) {
+          setEditCameraError('La cámara requiere una conexión segura (HTTPS). Accede desde localhost o un sitio HTTPS.');
+          return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setEditCameraError('Tu navegador no soporta acceso a la cámara.');
+          return;
+        }
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+          if (permissionStatus.state === 'denied') {
+            setEditCameraError('Permiso de cámara denegado. Por favor, permite el acceso en la configuración de tu navegador.');
+            return;
+          }
+        } catch (permError) {
+          console.warn('No se pudo verificar permisos de cámara:', permError);
+        }
+        const constraints = {
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        };
+        const s = await navigator.mediaDevices.getUserMedia(constraints);
+        editStreamRef.current = s;
+        if (editVideoRef.current) {
+          editVideoRef.current.srcObject = s;
+          editVideoRef.current.onloadedmetadata = () => {
+            editVideoRef.current.play().then(() => {
+              setEditCameraReady(true);
+              if (modelsLoaded) startEditFaceDetection();
+            }).catch(error => {
+              setEditCameraError('Error al iniciar la reproducción del video.');
+            });
+          };
+        }
+      } catch (e) {
+        setEditCameraError('Error al acceder a la cámara: ' + (e.message || 'Error desconocido'));
+      }
+    };
+
+    const stopEditCamera = () => {
+      if (editStreamRef.current) {
+        editStreamRef.current.getTracks().forEach((t) => t.stop());
+        editStreamRef.current = null;
+      }
+      if (editAnimationRef.current) {
+        cancelAnimationFrame(editAnimationRef.current);
+        editAnimationRef.current = null;
+      }
+      setEditCameraReady(false);
+      setEditCameraError('');
+    };
+
+    const restartEditCamera = async () => {
+      stopEditCamera();
+      setTimeout(() => startEditCamera(), 500);
+    };
+
+    const startEditFaceDetection = () => {
+      const video = editVideoRef.current;
+      const overlayCanvas = editOverlayCanvasRef.current;
+      if (!video || !overlayCanvas || !modelsLoaded) return;
+      const displaySize = { width: video.videoWidth, height: video.videoHeight };
+      faceapi.matchDimensions(overlayCanvas, displaySize);
+      const detectFaces = async () => {
+        if (!editStreamRef.current) return;
+        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+        const ctx = overlayCanvas.getContext('2d');
+        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        faceapi.draw.drawDetections(overlayCanvas, resizedDetections);
+        faceapi.draw.drawFaceLandmarks(overlayCanvas, resizedDetections);
+        editAnimationRef.current = requestAnimationFrame(detectFaces);
+      };
+      detectFaces();
+    };
+
+    const captureEditPhoto = async () => {
+      const video = editVideoRef.current;
+      const canvas = editCanvasRef.current;
+      if (!video || !canvas) {
+        setEditCameraError('Error: Elementos de captura no disponibles.');
+        return;
+      }
+      if (!editStreamRef.current) {
+        setEditCameraError('Error: Cámara no activa. Intenta recargar la página.');
+        return;
+      }
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        setEditCameraError('Error: Video no está listo. Espera a que la cámara se inicie completamente.');
+        return;
+      }
+      try {
+        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+        if (!detection) {
+          setEditCameraError('No se detectó ningún rostro. Asegúrate de que tu rostro esté visible y bien iluminado.');
+          return;
+        }
+        const { box } = detection.detection;
+        const padding = 0.3;
+        const width = box.width * (1 + padding);
+        const height = box.height * (1 + padding);
+        const x = Math.max(0, box.x - (width - box.width) / 2);
+        const y = Math.max(0, box.y - (height - box.height) / 2);
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const croppedCanvas = document.createElement('canvas');
+        const croppedCtx = croppedCanvas.getContext('2d');
+        croppedCanvas.width = width;
+        croppedCanvas.height = height;
+        croppedCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+        const targetWidth = 300;
+        const targetHeight = 400;
+        const aspectRatio = width / height;
+        let finalWidth, finalHeight;
+        if (aspectRatio > targetWidth / targetHeight) {
+          finalWidth = targetWidth;
+          finalHeight = targetWidth / aspectRatio;
+        } else {
+          finalHeight = targetHeight;
+          finalWidth = targetHeight * aspectRatio;
+        }
+        const finalCanvas = document.createElement('canvas');
+        const finalCtx = finalCanvas.getContext('2d');
+        finalCanvas.width = targetWidth;
+        finalCanvas.height = targetHeight;
+        finalCtx.drawImage(croppedCanvas, 0, 0, width, height, (targetWidth - finalWidth) / 2, (targetHeight - finalHeight) / 2, finalWidth, finalHeight);
+        const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9);
+        setEditPhotoDataUrl(dataUrl);
+        setEditCameraError('');
+      } catch (error) {
+        setEditCameraError('Error al capturar la foto. Inténtalo de nuevo.');
+      }
+    };
   const [cameraError, setCameraError] = useState('');
   const [cameraReady, setCameraReady] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -321,11 +474,76 @@ export default function Pedestrian() {
       const dataToSend = { ...formData };
       if (photoDataUrl) dataToSend.photo = photoDataUrl;
       const response = await personService.addPerson(dataToSend);
+      console.log('Respuesta completa al crear persona:', response);
       if (response.success) {
+        // Mostrar todas las claves y valores de response.data si es objeto
+        if (response.data && typeof response.data === 'object') {
+          console.log('Claves y valores de response.data:');
+          Object.entries(response.data).forEach(([key, value]) => {
+            console.log(key, ':', value);
+          });
+        }
+        // Nueva lógica: si response.data es un string, usarlo directamente como personId
+        let realPersonId = null;
+        // Caso 1: response.data es string/number
+        if (typeof response.data === 'string' || typeof response.data === 'number') {
+          realPersonId = response.data;
+        }
+        // Caso 2: response.data.data es string/number
+        else if (response.data && typeof response.data === 'object' && (typeof response.data.data === 'string' || typeof response.data.data === 'number')) {
+          realPersonId = response.data.data;
+        }
+        // Otros casos
+        else if (response.data?.person?.personId) {
+          realPersonId = response.data.person.personId;
+        } else if (response.data?.personId) {
+          realPersonId = response.data.personId;
+        } else if (response.data?.id) {
+          realPersonId = response.data.id;
+        } else if (response.data?.person) {
+          if (typeof response.data.person === 'object') {
+            for (const key in response.data.person) {
+              if (key.toLowerCase().includes('id')) {
+                realPersonId = response.data.person[key];
+                break;
+              }
+            }
+          }
+        }
+        const realDNI = response.data?.person?.certificateNumber || response.data?.certificateNumber;
+        console.log('personId extraído:', realPersonId, 'DNI extraído:', realDNI);
+        if (!realPersonId) {
+          setError('No se pudo extraer el personId de la respuesta. Revisa la consola y comparte aquí el log para ajustar la lógica.');
+          return;
+        }
+        try {
+          for (const groupId of selectedAccessGroups) {
+            const body = {
+              privilegeGroupId: groupId,
+              type: 1,
+              list: [{ id: realPersonId }]
+            };
+            try {
+              await personService.addPersonToPrivilegeGroups(realPersonId, groupId);
+            } catch (err2) {
+              let errorMsg = 'Persona creada pero error al asignar acceso: ';
+              errorMsg += '\nBody enviado: ' + JSON.stringify(body);
+              if (err2.response && err2.response.data) {
+                errorMsg += '\nRespuesta: ' + JSON.stringify(err2.response.data);
+              } else {
+                errorMsg += '\nError: ' + err2.message;
+              }
+              setError(errorMsg);
+            }
+          }
+        } catch (err2) {
+          setError('Error inesperado al asignar acceso: ' + err2.message);
+        }
         setSuccess('Peatón agregado exitosamente');
         setShowAddModal(false);
         setFormData({ personGivenName: '', personFamilyName: '', personCode: '', gender: '1', certificateNumber: '', phoneNo: '', orgIndexCode: '1' });
         setPhotoDataUrl(null);
+        setSelectedAccessGroups([]);
         loadPersons();
       }
     } catch (err) {
@@ -507,20 +725,51 @@ export default function Pedestrian() {
                     <div className="mb-3"><label className="form-label">Teléfono</label><input type="text" className="form-control" value={formData.phoneNo} onChange={(e) => setFormData({ ...formData, phoneNo: e.target.value })} /></div>
 
                     <div className="mb-3">
+                      <label className="form-label">Asignar Acceso</label>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="acceso-visitas"
+                          checked={selectedAccessGroups.includes("3")}
+                          onChange={e => {
+                            if (e.target.checked) setSelectedAccessGroups(prev => [...prev, "3"]);
+                            else setSelectedAccessGroups(prev => prev.filter(id => id !== "3"));
+                          }}
+                        />
+                        <label className="form-check-label" htmlFor="acceso-visitas">Acceso Visitas</label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="acceso-total"
+                          checked={selectedAccessGroups.includes("2")}
+                          onChange={e => {
+                            if (e.target.checked) setSelectedAccessGroups(prev => [...prev, "2"]);
+                            else setSelectedAccessGroups(prev => prev.filter(id => id !== "2"));
+                          }}
+                        />
+                        <label className="form-check-label" htmlFor="acceso-total">ACCESO-TOTAL</label>
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
                       <label className="form-label">Foto</label>
-                      <div className="d-flex gap-2 align-items-start">
-                        <div style={{ position: 'relative' }}>
+                      <div className="d-flex flex-column align-items-center gap-2">
+                        <div style={{ position: 'relative', marginBottom: '8px' }}>
                           <video
                             ref={videoRef}
                             autoPlay
                             muted
                             playsInline
                             style={{
-                              width: 240,
-                              height: 180,
+                              width: cameraLarge ? 480 : 240,
+                              height: cameraLarge ? 360 : 180,
                               background: '#000',
                               border: cameraReady ? '2px solid #28a745' : '2px solid #6c757d',
-                              borderRadius: '4px'
+                              borderRadius: '4px',
+                              transition: 'width 0.2s, height 0.2s'
                             }}
                           />
                           <canvas
@@ -529,11 +778,21 @@ export default function Pedestrian() {
                               position: 'absolute',
                               top: 0,
                               left: 0,
-                              width: 240,
-                              height: 180,
-                              pointerEvents: 'none'
+                              width: cameraLarge ? 480 : 240,
+                              height: cameraLarge ? 360 : 180,
+                              pointerEvents: 'none',
+                              transition: 'width 0.2s, height 0.2s'
                             }}
                           />
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            style={{ position: 'absolute', bottom: 5, right: 5, zIndex: 2 }}
+                            onClick={() => setCameraLarge((prev) => !prev)}
+                            title={cameraLarge ? 'Reducir cámara' : 'Agrandar cámara'}
+                          >
+                            {cameraLarge ? <span>🔍-</span> : <span>🔍+</span>}
+                          </button>
                           {!cameraReady && !cameraError && (
                             <div style={{
                               position: 'absolute',
@@ -552,7 +811,7 @@ export default function Pedestrian() {
                             <div style={{
                               position: 'absolute',
                               top: '5px',
-                              right: '5px',
+                              right: cameraLarge ? '40px' : '5px',
                               background: '#28a745',
                               color: '#fff',
                               padding: '2px 6px',
@@ -563,46 +822,45 @@ export default function Pedestrian() {
                             </div>
                           )}
                         </div>
-                        <div>
-                          <canvas ref={canvasRef} style={{ display: 'none' }} />
-                          <div className="mb-2">
-                            <button
-                              type="button"
-                              className="btn btn-outline-primary btn-sm me-2"
-                              onClick={capturePhoto}
-                              disabled={!cameraReady}
-                            >
-                              {cameraReady ? 'Capturar' : 'Esperando...'}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary btn-sm me-1"
-                              onClick={() => setPhotoDataUrl(null)}
-                              disabled={!photoDataUrl}
-                            >
-                              Borrar
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-info btn-sm"
-                              onClick={restartCamera}
-                              title="Reiniciar cámara"
-                            >
-                              🔄
-                            </button>
-                          </div>
-                          {photoDataUrl && (
-                            <img
-                              src={photoDataUrl}
-                              alt="captura"
-                              style={{
-                                width: 160,
-                                borderRadius: 4,
-                                border: '1px solid #ddd',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                              }}
-                            />
-                          )}
+                        <canvas ref={canvasRef} style={{ display: 'none' }} />
+                        {photoDataUrl && (
+                          <img
+                            src={photoDataUrl}
+                            alt="captura"
+                            style={{
+                              width: 160,
+                              borderRadius: 4,
+                              border: '1px solid #ddd',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                              marginBottom: '8px'
+                            }}
+                          />
+                        )}
+                        <div className="mb-2 mt-2 w-100 d-flex justify-content-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm me-2"
+                            onClick={capturePhoto}
+                            disabled={!cameraReady}
+                          >
+                            {cameraReady ? 'Capturar' : 'Esperando...'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm me-1"
+                            onClick={() => setPhotoDataUrl(null)}
+                            disabled={!photoDataUrl}
+                          >
+                            Borrar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-info btn-sm"
+                            onClick={restartCamera}
+                            title="Reiniciar cámara"
+                          >
+                            🔄
+                          </button>
                         </div>
                       </div>
                       {cameraError && <div className="alert alert-warning mt-2">{cameraError}</div>}
@@ -649,6 +907,136 @@ export default function Pedestrian() {
                     <div className="mb-3"><label className="form-label">Teléfono</label><input type="text" className="form-control" value={editData.phoneNo} onChange={(e) => setEditData({ ...editData, phoneNo: e.target.value })} placeholder="Número de teléfono" /></div>
                     <div className="mb-3"><label className="form-label">Email</label><input type="email" className="form-control" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} placeholder="Correo electrónico" /></div>
                     <div className="mb-3"><label className="form-label">Organización</label><select className="form-select" value={editData.orgIndexCode} onChange={(e) => setEditData({ ...editData, orgIndexCode: e.target.value })}>{organizations.map((org) => (<option key={org.orgIndexCode} value={org.orgIndexCode}>{org.orgName}</option>))}</select></div>
+                    <div className="mb-3">
+                      <label className="form-label">Foto</label>
+                      <div className="d-flex flex-column align-items-center gap-2">
+                        <div style={{ position: 'relative', marginBottom: '8px' }}>
+                          <video
+                            ref={editVideoRef}
+                            autoPlay
+                            muted
+                            playsInline
+                            style={{
+                              width: editCameraLarge ? 480 : 240,
+                              height: editCameraLarge ? 360 : 180,
+                              background: '#000',
+                              border: editCameraReady ? '2px solid #28a745' : '2px solid #6c757d',
+                              borderRadius: '4px',
+                              transition: 'width 0.2s, height 0.2s'
+                            }}
+                          />
+                          <canvas
+                            ref={editOverlayCanvasRef}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: editCameraLarge ? 480 : 240,
+                              height: editCameraLarge ? 360 : 180,
+                              pointerEvents: 'none',
+                              transition: 'width 0.2s, height 0.2s'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            style={{ position: 'absolute', bottom: 5, right: 5, zIndex: 2 }}
+                            onClick={() => setEditCameraLarge((prev) => !prev)}
+                            title={editCameraLarge ? 'Reducir cámara' : 'Agrandar cámara'}
+                          >
+                            {editCameraLarge ? <span>🔍-</span> : <span>🔍+</span>}
+                          </button>
+                          {!editCameraReady && !editCameraError && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              color: '#fff',
+                              fontSize: '14px',
+                              textAlign: 'center'
+                            }}>
+                              <div className="spinner-border spinner-border-sm text-light me-2" role="status"></div>
+                              Iniciando cámara...
+                            </div>
+                          )}
+                          {editCameraReady && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '5px',
+                              right: editCameraLarge ? '40px' : '5px',
+                              background: '#28a745',
+                              color: '#fff',
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                              fontSize: '12px'
+                            }}>
+                              ● Activa
+                            </div>
+                          )}
+                        </div>
+                        <canvas ref={editCanvasRef} style={{ display: 'none' }} />
+                        {editPhotoDataUrl && (
+                          <img
+                            src={editPhotoDataUrl}
+                            alt="captura"
+                            style={{
+                              width: 160,
+                              borderRadius: 4,
+                              border: '1px solid #ddd',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                              marginBottom: '8px'
+                            }}
+                          />
+                        )}
+                        <div className="mb-2 mt-2 w-100 d-flex justify-content-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm me-2"
+                            onClick={captureEditPhoto}
+                            disabled={!editCameraReady}
+                          >
+                            {editCameraReady ? 'Capturar' : 'Esperando...'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm me-1"
+                            onClick={() => setEditPhotoDataUrl(null)}
+                            disabled={!editPhotoDataUrl}
+                          >
+                            Borrar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-info btn-sm"
+                            onClick={restartEditCamera}
+                            title="Reiniciar cámara"
+                          >
+                            🔄
+                          </button>
+                        </div>
+                        <div className="mb-2 mt-2 w-100 d-flex justify-content-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline-dark btn-sm"
+                            onClick={editCameraReady ? stopEditCamera : startEditCamera}
+                          >
+                            {editCameraReady ? 'Cerrar cámara' : 'Abrir cámara'}
+                          </button>
+                        </div>
+                        {editCameraError && <div className="alert alert-warning mt-2">{editCameraError}</div>}
+                        {!editCameraError && !editCameraReady && (
+                          <div className="alert alert-info mt-2">
+                            <small>
+                              <strong>Nota:</strong> Si la cámara no se activa, asegúrate de:
+                              <br />• Permitir el acceso a la cámara en tu navegador
+                              <br />• Acceder desde HTTPS o localhost
+                              <br />• Cerrar otras aplicaciones que usen la cámara
+                            </small>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><i className="bi bi-save me-2"></i>Guardar Cambios</button></div>
                 </form>

@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+
+
 // Construir la URL del backend usando la IP del servidor
 // Esto permite que otros dispositivos en la misma red se conecten al backend
 const API_HOST = typeof window !== 'undefined'
@@ -77,46 +79,73 @@ export const authService = {
 
 // Person services
 export const personService = {
+  addPersonToPrivilegeGroups: async (personId, privilegeGroupId) => {
+    // Llama directamente al endpoint del backend que debe redirigir a HikCentral
+    const endpoint = '/acs/v1/privilege/group/single/addPersons';
+    const body = {
+      privilegeGroupId: String(privilegeGroupId),
+      type: 1,
+      list: [{ id: String(personId) }]
+    };
+    console.log('POST', endpoint, body);
+    const response = await api.post(endpoint, body);
+    return response.data;
+  },
   addPerson: async (personData) => {
-    const response = await api.post('/persons/add', personData);
+    const endpoint = '/persons/add';
+    console.log('POST', endpoint, personData);
+    const response = await api.post(endpoint, personData);
     return response.data;
   },
 
   updatePerson: async (personId, personData) => {
-    const response = await api.put(`/persons/update/${personId}`, personData);
+    const endpoint = `/persons/update/${personId}`;
+    console.log('PUT', endpoint, personData);
+    const response = await api.put(endpoint, personData);
     return response.data;
   },
 
   listPersons: async (pageNo = 1, pageSize = 100, search = null) => {
+    const endpoint = '/persons/list';
     const params = { page_no: pageNo, page_size: pageSize };
     if (search) {
       params.search = search;
     }
-    const response = await api.get('/persons/list', { params });
+    console.log('GET', endpoint, params);
+    const response = await api.get(endpoint, { params });
     return response.data;
   },
 
   getPerson: async (personCode) => {
-    const response = await api.get(`/persons/${personCode}`);
+    const endpoint = `/persons/${personCode}`;
+    console.log('GET', endpoint);
+    const response = await api.get(endpoint);
     return response.data;
   },
 
   assignAccessLevel: async (personCode, privilegeGroupId) => {
-    const response = await api.post('/persons/assign-access-level', {
+    const endpoint = '/persons/assign-access-level';
+    const body = {
       personCode,
       privilegeGroupId,
       type: 1,
-    });
+    };
+    console.log('POST', endpoint, body);
+    const response = await api.post(endpoint, body);
     return response.data;
   },
 
   listAccessLevels: async () => {
-    const response = await api.get('/persons/access-levels/list');
+    const endpoint = '/persons/access-levels/list';
+    console.log('GET', endpoint);
+    const response = await api.get(endpoint);
     return response.data;
   },
 
   listOrganizations: async () => {
-    const response = await api.get('/persons/organizations/list');
+    const endpoint = '/persons/organizations/list';
+    console.log('GET', endpoint);
+    const response = await api.get(endpoint);
     return response.data;
   },
 };
