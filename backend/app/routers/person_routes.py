@@ -73,75 +73,113 @@ async def add_person(
         else:
             person_id = None
         
+        # Determinar personCode real para operaciones subsiguientes (DNI, Foto, etc)
+        person_code_real = person.personCode
+        
+        # Si no vino en el request, debemos buscarlo en HikCentral usando el personId
+        if not person_code_real and person_id:
+             print(f"PersonCode no proporcionado. Buscando en HikCentral para ID: {person_id}")
+             try:
+                # Dar un momento para que HikCentral indexe
+                import time
+                time.sleep(1.0) 
+                
+                # Buscar en todas las páginas hasta encontrarlo
+                page = 1
+                found = False
+                while not found:
+                    print(f"Buscando personCode en página {page}...")
+                    list_response = hik_api.get_person_list(page_no=page, page_size=200) # Usar página grande para ir rápido
+                    
+                    if str(list_response.get("code")) != "0":
+                        print(f"Error al listar personas: {list_response.get('msg')}")
+                        break
+                        
+                    data_list = list_response.get("data", {})
+                    persons_list = data_list.get("list", [])
+                    total = data_list.get("total", 0)
+                    
+                    if not persons_list:
+                        break
+                        
+                    for p in persons_list:
+                        if str(p.get("personId")) == str(person_id):
+                            person_code_real = p.get("personCode")
+                            print(f"✓ PersonCode RECUPERADO de HikCentral: {person_code_real}")
+                            found = True
+                            break
+                    
+                    if found:
+                        break
+                        
+                    # Verificar si hay más páginas
+                    if page * 200 >= total:
+                        break
+                    page += 1
+                
+                if not person_code_real:
+                    print("ADVERTENCIA: No se pudo encontrar el personCode después de buscar en todas las páginas")
+                    
+             except Exception as e:
+                print(f"Advertencia: Excepción al recuperar personCode: {e}")
+
         # PASO 2: Si hay DNI, agregarlo usando customFieldsUpdate
         if person.certificateNumber and person.certificateNumber.strip() and person_id:
                 print(f"Agregando DNI '{person.certificateNumber.strip()}' a persona")
                 try:
-                    # Necesitamos obtener el personCode que HikCentral asignó
-                    import time
-                    time.sleep(0.5)  # Esperar para que aparezca en la lista
-                    
-                    person_code_real = None
-                    list_response = hik_api.get_person_list(page_no=1, page_size=100)
-                    if str(list_response.get("code")) == "0":
-                        persons = list_response.get("data", {}).get("list", [])
-                        for p in persons:
-                            if str(p.get("personId")) == str(person_id):
-                                person_code_real = p.get("personCode")
-                                print(f"PersonCode encontrado: {person_code_real}")
-                                break
-                    
                     if not person_code_real:
-                        print(f"No se pudo obtener personCode para personId {person_id}")
-                        raise ValueError("No se pudo obtener el personCode")
-                    
-                    # Usar el endpoint correcto - ruta fija, todo en el body
-                    # IMPORTANTE: Solo enviar personCode, NO personId
-                    path = "/artemis/api/resource/v1/person/personId/customFieldsUpdate"
-                    
-                    update_data = {
-                        "personCode": person_code_real,
-                        "list": [
-                            {
-                                "id": "1",
-                                "customFiledName": "DNI",
-                                "customFieldType": 0,
-                                "customFieldValue": person.certificateNumber.strip()
-                            }
-                        ]
-                    }
-                    
-                    print(f"Body UPDATE: {json.dumps(update_data, indent=2)}")
-                    
-                    update_response = hik_api.post_signed(path, update_data)
-                    print(f"Respuesta update: {update_response}")
-                    
-                    if str(update_response.get("code")) != "0":
-                        error_msg = update_response.get('msg', 'Error desconocido')
-                        print(f"Error al agregar DNI: {error_msg}")
+                        print(f"No se pudo obtener personCode para personId {person_id}, saltando carga de DNI")
                     else:
-                        print(f"✓ DNI agregado exitosamente")
+                        # Usar el endpoint correcto - ruta fija, todo en el body
+                        # IMPORTANTE: Solo enviar personCode, NO personId
+                        path = "/artemis/api/resource/v1/person/personId/customFieldsUpdate"
+                        
+                        update_data = {
+                            "personCode": person_code_real,
+                            "list": [
+                                {
+                                    "id": "1",
+                                    "customFiledName": "DNI",
+                                    "customFieldType": 0,
+                                    "customFieldValue": person.certificateNumber.strip()
+                                }
+                            ]
+                        }
+                        
+                        print(f"Body UPDATE: {json.dumps(update_data, indent=2)}")
+                        
+                        update_response = hik_api.post_signed(path, update_data)
+                        print(f"Respuesta update: {update_response}")
+                        
+                        if str(update_response.get("code")) != "0":
+                            error_msg = update_response.get('msg', 'Error desconocido')
+                            print(f"Error al agregar DNI: {error_msg}")
+                        else:
+                            print(f"✓ DNI agregado exitosamente")
                 except Exception as e:
                     print(f"Error al agregar DNI: {str(e)}")
 
         # PASO 2.5: Si vino foto en el payload, subirla a HikCentral usando personCode
         try:
             if getattr(person, "photo", None) and person_id:
-                photo_val = getattr(person, "photo")
-                # extraer base64 si viene como data URL
-                if isinstance(photo_val, str) and photo_val.startswith("data:"):
-                    try:
-                        face_b64 = photo_val.split(",", 1)[1]
-                    except Exception:
-                        face_b64 = photo_val
+                if not person_code_real:
+                     print("No se tiene personCode, no se puede subir foto.")
                 else:
-                    face_b64 = photo_val
+                    photo_val = getattr(person, "photo")
+                    # extraer base64 si viene como data URL
+                    if isinstance(photo_val, str) and photo_val.startswith("data:"):
+                        try:
+                            face_b64 = photo_val.split(",", 1)[1]
+                        except Exception:
+                            face_b64 = photo_val
+                    else:
+                        face_b64 = photo_val
 
-                print("Subiendo foto a HikCentral para personCode:", person_code_real)
-                path_face = "/artemis/api/resource/v1/person/face/update"
-                body_face = {"personCode": person_code_real, "faceData": face_b64}
-                face_resp = hik_api.post_signed(path_face, body_face)
-                print("Respuesta subida foto:", face_resp)
+                    print("Subiendo foto a HikCentral para personCode:", person_code_real)
+                    path_face = "/artemis/api/resource/v1/person/face/update"
+                    body_face = {"personCode": person_code_real, "faceData": face_b64}
+                    face_resp = hik_api.post_signed(path_face, body_face)
+                    print("Respuesta subida foto:", face_resp)
         except Exception as e:
             print(f"Error al subir foto de persona: {e}")
         
@@ -186,6 +224,11 @@ async def add_person(
             except Exception as e:
                 print(f"Error al crear vehículo: {str(e)}")
         
+        # Inject personCode into response data for frontend usage
+        if isinstance(response, dict):
+            response["personCode"] = person_code_real
+            response["personId"] = person_id
+
         return {
             "message": "Persona agregada exitosamente",
             "success": True,

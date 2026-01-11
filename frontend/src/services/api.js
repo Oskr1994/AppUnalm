@@ -50,11 +50,11 @@ export const authService = {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    
+
     const response = await api.post('/auth/login', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    
+
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
     }
@@ -79,13 +79,13 @@ export const authService = {
 
 // Person services
 export const personService = {
-  addPersonToPrivilegeGroups: async (personId, privilegeGroupId) => {
-    // Llama directamente al endpoint del backend que debe redirigir a HikCentral
-    const endpoint = '/acs/v1/privilege/group/single/addPersons';
+  addPersonToPrivilegeGroups: async (personCode, privilegeGroupId) => {
+    // Usa el endpoint correcto del backend para asignar access level
+    const endpoint = '/persons/assign-access-level';
     const body = {
+      personCode: String(personCode),
       privilegeGroupId: String(privilegeGroupId),
       type: 1,
-      list: [{ id: String(personId) }]
     };
     console.log('POST', endpoint, body);
     const response = await api.post(endpoint, body);
@@ -148,6 +148,15 @@ export const personService = {
     const response = await api.get(endpoint);
     return response.data;
   },
+};
+
+// External services
+export const externalService = {
+  consultDni: async (dni) => {
+    const token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Im9zY2FyLnBlcmV6QHZhbHRhcnNlY3VyaXR5LmNvbSJ9.CHwAiBRZUUG7b__6UNnofZZQD18A6bY2aPqzFSAiVPs';
+    const response = await axios.get(`https://dniruc.apisperu.com/api/v1/dni/${dni}?token=${token}`);
+    return response.data;
+  }
 };
 
 export default api;

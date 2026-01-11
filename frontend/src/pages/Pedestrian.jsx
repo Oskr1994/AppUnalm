@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { personService } from '../services/api';
+import { personService, externalService } from '../services/api';
 import Navbar from '../components/Navbar';
 import * as faceapi from 'face-api.js';
 
@@ -9,6 +9,10 @@ export default function Pedestrian() {
   const [persons, setPersons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Estados para alertas dentro del modal
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
   const [organizations, setOrganizations] = useState([]);
   const [formData, setFormData] = useState({
     personGivenName: '',
@@ -41,148 +45,148 @@ export default function Pedestrian() {
   const editOverlayCanvasRef = useRef(null);
   const editStreamRef = useRef(null);
   const editAnimationRef = useRef(null);
-    // Funciones para cámara en edición
-    const startEditCamera = async () => {
-      try {
-        setEditCameraError('');
-        if (!window.isSecureContext) {
-          setEditCameraError('La cámara requiere una conexión segura (HTTPS). Accede desde localhost o un sitio HTTPS.');
-          return;
-        }
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setEditCameraError('Tu navegador no soporta acceso a la cámara.');
-          return;
-        }
-        try {
-          const permissionStatus = await navigator.permissions.query({ name: 'camera' });
-          if (permissionStatus.state === 'denied') {
-            setEditCameraError('Permiso de cámara denegado. Por favor, permite el acceso en la configuración de tu navegador.');
-            return;
-          }
-        } catch (permError) {
-          console.warn('No se pudo verificar permisos de cámara:', permError);
-        }
-        const constraints = {
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        };
-        const s = await navigator.mediaDevices.getUserMedia(constraints);
-        editStreamRef.current = s;
-        if (editVideoRef.current) {
-          editVideoRef.current.srcObject = s;
-          editVideoRef.current.onloadedmetadata = () => {
-            editVideoRef.current.play().then(() => {
-              setEditCameraReady(true);
-              if (modelsLoaded) startEditFaceDetection();
-            }).catch(error => {
-              setEditCameraError('Error al iniciar la reproducción del video.');
-            });
-          };
-        }
-      } catch (e) {
-        setEditCameraError('Error al acceder a la cámara: ' + (e.message || 'Error desconocido'));
-      }
-    };
-
-    const stopEditCamera = () => {
-      if (editStreamRef.current) {
-        editStreamRef.current.getTracks().forEach((t) => t.stop());
-        editStreamRef.current = null;
-      }
-      if (editAnimationRef.current) {
-        cancelAnimationFrame(editAnimationRef.current);
-        editAnimationRef.current = null;
-      }
-      setEditCameraReady(false);
+  // Funciones para cámara en edición
+  const startEditCamera = async () => {
+    try {
       setEditCameraError('');
-    };
-
-    const restartEditCamera = async () => {
-      stopEditCamera();
-      setTimeout(() => startEditCamera(), 500);
-    };
-
-    const startEditFaceDetection = () => {
-      const video = editVideoRef.current;
-      const overlayCanvas = editOverlayCanvasRef.current;
-      if (!video || !overlayCanvas || !modelsLoaded) return;
-      const displaySize = { width: video.videoWidth, height: video.videoHeight };
-      faceapi.matchDimensions(overlayCanvas, displaySize);
-      const detectFaces = async () => {
-        if (!editStreamRef.current) return;
-        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-        const ctx = overlayCanvas.getContext('2d');
-        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        faceapi.draw.drawDetections(overlayCanvas, resizedDetections);
-        faceapi.draw.drawFaceLandmarks(overlayCanvas, resizedDetections);
-        editAnimationRef.current = requestAnimationFrame(detectFaces);
-      };
-      detectFaces();
-    };
-
-    const captureEditPhoto = async () => {
-      const video = editVideoRef.current;
-      const canvas = editCanvasRef.current;
-      if (!video || !canvas) {
-        setEditCameraError('Error: Elementos de captura no disponibles.');
+      if (!window.isSecureContext) {
+        setEditCameraError('La cámara requiere una conexión segura (HTTPS). Accede desde localhost o un sitio HTTPS.');
         return;
       }
-      if (!editStreamRef.current) {
-        setEditCameraError('Error: Cámara no activa. Intenta recargar la página.');
-        return;
-      }
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        setEditCameraError('Error: Video no está listo. Espera a que la cámara se inicie completamente.');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setEditCameraError('Tu navegador no soporta acceso a la cámara.');
         return;
       }
       try {
-        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-        if (!detection) {
-          setEditCameraError('No se detectó ningún rostro. Asegúrate de que tu rostro esté visible y bien iluminado.');
+        const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+        if (permissionStatus.state === 'denied') {
+          setEditCameraError('Permiso de cámara denegado. Por favor, permite el acceso en la configuración de tu navegador.');
           return;
         }
-        const { box } = detection.detection;
-        const padding = 0.3;
-        const width = box.width * (1 + padding);
-        const height = box.height * (1 + padding);
-        const x = Math.max(0, box.x - (width - box.width) / 2);
-        const y = Math.max(0, box.y - (height - box.height) / 2);
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const croppedCanvas = document.createElement('canvas');
-        const croppedCtx = croppedCanvas.getContext('2d');
-        croppedCanvas.width = width;
-        croppedCanvas.height = height;
-        croppedCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
-        const targetWidth = 300;
-        const targetHeight = 400;
-        const aspectRatio = width / height;
-        let finalWidth, finalHeight;
-        if (aspectRatio > targetWidth / targetHeight) {
-          finalWidth = targetWidth;
-          finalHeight = targetWidth / aspectRatio;
-        } else {
-          finalHeight = targetHeight;
-          finalWidth = targetHeight * aspectRatio;
-        }
-        const finalCanvas = document.createElement('canvas');
-        const finalCtx = finalCanvas.getContext('2d');
-        finalCanvas.width = targetWidth;
-        finalCanvas.height = targetHeight;
-        finalCtx.drawImage(croppedCanvas, 0, 0, width, height, (targetWidth - finalWidth) / 2, (targetHeight - finalHeight) / 2, finalWidth, finalHeight);
-        const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9);
-        setEditPhotoDataUrl(dataUrl);
-        setEditCameraError('');
-      } catch (error) {
-        setEditCameraError('Error al capturar la foto. Inténtalo de nuevo.');
+      } catch (permError) {
+        console.warn('No se pudo verificar permisos de cámara:', permError);
       }
+      const constraints = {
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      };
+      const s = await navigator.mediaDevices.getUserMedia(constraints);
+      editStreamRef.current = s;
+      if (editVideoRef.current) {
+        editVideoRef.current.srcObject = s;
+        editVideoRef.current.onloadedmetadata = () => {
+          editVideoRef.current.play().then(() => {
+            setEditCameraReady(true);
+            if (modelsLoaded) startEditFaceDetection();
+          }).catch(error => {
+            setEditCameraError('Error al iniciar la reproducción del video.');
+          });
+        };
+      }
+    } catch (e) {
+      setEditCameraError('Error al acceder a la cámara: ' + (e.message || 'Error desconocido'));
+    }
+  };
+
+  const stopEditCamera = () => {
+    if (editStreamRef.current) {
+      editStreamRef.current.getTracks().forEach((t) => t.stop());
+      editStreamRef.current = null;
+    }
+    if (editAnimationRef.current) {
+      cancelAnimationFrame(editAnimationRef.current);
+      editAnimationRef.current = null;
+    }
+    setEditCameraReady(false);
+    setEditCameraError('');
+  };
+
+  const restartEditCamera = async () => {
+    stopEditCamera();
+    setTimeout(() => startEditCamera(), 500);
+  };
+
+  const startEditFaceDetection = () => {
+    const video = editVideoRef.current;
+    const overlayCanvas = editOverlayCanvasRef.current;
+    if (!video || !overlayCanvas || !modelsLoaded) return;
+    const displaySize = { width: video.videoWidth, height: video.videoHeight };
+    faceapi.matchDimensions(overlayCanvas, displaySize);
+    const detectFaces = async () => {
+      if (!editStreamRef.current) return;
+      const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+      const ctx = overlayCanvas.getContext('2d');
+      ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      faceapi.draw.drawDetections(overlayCanvas, resizedDetections);
+      faceapi.draw.drawFaceLandmarks(overlayCanvas, resizedDetections);
+      editAnimationRef.current = requestAnimationFrame(detectFaces);
     };
+    detectFaces();
+  };
+
+  const captureEditPhoto = async () => {
+    const video = editVideoRef.current;
+    const canvas = editCanvasRef.current;
+    if (!video || !canvas) {
+      setEditCameraError('Error: Elementos de captura no disponibles.');
+      return;
+    }
+    if (!editStreamRef.current) {
+      setEditCameraError('Error: Cámara no activa. Intenta recargar la página.');
+      return;
+    }
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setEditCameraError('Error: Video no está listo. Espera a que la cámara se inicie completamente.');
+      return;
+    }
+    try {
+      const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+      if (!detection) {
+        setEditCameraError('No se detectó ningún rostro. Asegúrate de que tu rostro esté visible y bien iluminado.');
+        return;
+      }
+      const { box } = detection.detection;
+      const padding = 0.8;
+      const width = box.width * (1 + padding);
+      const height = box.height * (1 + padding);
+      const x = Math.max(0, box.x - (width - box.width) / 2);
+      const y = Math.max(0, box.y - (height - box.height) / 2);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const croppedCanvas = document.createElement('canvas');
+      const croppedCtx = croppedCanvas.getContext('2d');
+      croppedCanvas.width = width;
+      croppedCanvas.height = height;
+      croppedCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+      const targetWidth = 300;
+      const targetHeight = 400;
+      const aspectRatio = width / height;
+      let finalWidth, finalHeight;
+      if (aspectRatio > targetWidth / targetHeight) {
+        finalWidth = targetWidth;
+        finalHeight = targetWidth / aspectRatio;
+      } else {
+        finalHeight = targetHeight;
+        finalWidth = targetHeight * aspectRatio;
+      }
+      const finalCanvas = document.createElement('canvas');
+      const finalCtx = finalCanvas.getContext('2d');
+      finalCanvas.width = targetWidth;
+      finalCanvas.height = targetHeight;
+      finalCtx.drawImage(croppedCanvas, 0, 0, width, height, (targetWidth - finalWidth) / 2, (targetHeight - finalHeight) / 2, finalWidth, finalHeight);
+      const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9);
+      setEditPhotoDataUrl(dataUrl);
+      setEditCameraError('');
+    } catch (error) {
+      setEditCameraError('Error al capturar la foto. Inténtalo de nuevo.');
+    }
+  };
   const [cameraError, setCameraError] = useState('');
   const [cameraReady, setCameraReady] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -415,7 +419,7 @@ export default function Pedestrian() {
       const landmarks = detection.landmarks;
 
       // Calcular bounding box expandido para incluir más del rostro
-      const padding = 0.3; // 30% padding
+      const padding = 0.8; // 100% padding (Passport style)
       const width = box.width * (1 + padding);
       const height = box.height * (1 + padding);
       const x = Math.max(0, box.x - (width - box.width) / 2);
@@ -466,8 +470,39 @@ export default function Pedestrian() {
     }
   };
 
+  const handleConsultDni = async () => {
+    if (!formData.certificateNumber) {
+      setModalError('Por favor ingrese un número de DNI');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setModalError('');
+      setModalSuccess('');
+      const data = await externalService.consultDni(formData.certificateNumber);
+      if (data && data.success) {
+        setFormData(prev => ({
+          ...prev,
+          personGivenName: data.nombres || '',
+          personFamilyName: `${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`.trim(),
+        }));
+        setModalSuccess('Datos del DNI obtenidos correctamente');
+      } else {
+        setModalError('No se encontraron datos para este DNI');
+      }
+    } catch (error) {
+      console.error('Error consultando DNI:', error);
+      setModalError('Error al consultar DNI');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setModalError('');
+    setModalSuccess('');
     setError('');
     setSuccess('');
     try {
@@ -483,48 +518,38 @@ export default function Pedestrian() {
             console.log(key, ':', value);
           });
         }
-        // Nueva lógica: si response.data es un string, usarlo directamente como personId
-        let realPersonId = null;
-        // Caso 1: response.data es string/number
-        if (typeof response.data === 'string' || typeof response.data === 'number') {
-          realPersonId = response.data;
-        }
-        // Caso 2: response.data.data es string/number
-        else if (response.data && typeof response.data === 'object' && (typeof response.data.data === 'string' || typeof response.data.data === 'number')) {
-          realPersonId = response.data.data;
-        }
-        // Otros casos
-        else if (response.data?.person?.personId) {
-          realPersonId = response.data.person.personId;
-        } else if (response.data?.personId) {
-          realPersonId = response.data.personId;
-        } else if (response.data?.id) {
-          realPersonId = response.data.id;
+        // Extraer el personCode real para asignar access level
+        let realPersonCode = null;
+        if (response.data?.person?.personCode) {
+          realPersonCode = response.data.person.personCode;
+        } else if (response.data?.personCode) {
+          realPersonCode = response.data.personCode;
+        } else if (response.data?.data?.personCode) {
+          realPersonCode = response.data.data.personCode;
         } else if (response.data?.person) {
-          if (typeof response.data.person === 'object') {
-            for (const key in response.data.person) {
-              if (key.toLowerCase().includes('id')) {
-                realPersonId = response.data.person[key];
-                break;
-              }
+          // Buscar cualquier clave que contenga 'code'
+          for (const key in response.data.person) {
+            if (key.toLowerCase().includes('code')) {
+              realPersonCode = response.data.person[key];
+              break;
             }
           }
         }
         const realDNI = response.data?.person?.certificateNumber || response.data?.certificateNumber;
-        console.log('personId extraído:', realPersonId, 'DNI extraído:', realDNI);
-        if (!realPersonId) {
-          setError('No se pudo extraer el personId de la respuesta. Revisa la consola y comparte aquí el log para ajustar la lógica.');
+        console.log('personCode extraído:', realPersonCode, 'DNI extraído:', realDNI);
+        if (!realPersonCode) {
+          setModalError('No se pudo extraer el personCode de la respuesta. Revisa la consola y comparte aquí el log para ajustar la lógica.');
           return;
         }
         try {
           for (const groupId of selectedAccessGroups) {
             const body = {
+              personCode: realPersonCode,
               privilegeGroupId: groupId,
-              type: 1,
-              list: [{ id: realPersonId }]
+              type: 1
             };
             try {
-              await personService.addPersonToPrivilegeGroups(realPersonId, groupId);
+              await personService.addPersonToPrivilegeGroups(realPersonCode, groupId);
             } catch (err2) {
               let errorMsg = 'Persona creada pero error al asignar acceso: ';
               errorMsg += '\nBody enviado: ' + JSON.stringify(body);
@@ -533,11 +558,11 @@ export default function Pedestrian() {
               } else {
                 errorMsg += '\nError: ' + err2.message;
               }
-              setError(errorMsg);
+              setModalError(errorMsg);
             }
           }
         } catch (err2) {
-          setError('Error inesperado al asignar acceso: ' + err2.message);
+          setModalError('Error inesperado al asignar acceso: ' + err2.message);
         }
         setSuccess('Peatón agregado exitosamente');
         setShowAddModal(false);
@@ -547,7 +572,7 @@ export default function Pedestrian() {
         loadPersons();
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al agregar peatón');
+      setModalError(err.response?.data?.detail || 'Error al agregar peatón');
     }
   };
 
@@ -717,10 +742,39 @@ export default function Pedestrian() {
                 </div>
                 <form onSubmit={handleSubmit}>
                   <div className="modal-body">
+                    {modalError && (
+                      <div className="alert alert-danger" role="alert">
+                        {modalError}
+                      </div>
+                    )}
+                    {modalSuccess && (
+                      <div className="alert alert-success" role="alert">
+                        {modalSuccess}
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <label className="form-label">DNI/Documento</label>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formData.certificateNumber}
+                          onChange={(e) => setFormData({ ...formData, certificateNumber: e.target.value })}
+                          placeholder="Número de documento de identidad"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={handleConsultDni}
+                        >
+                          Consultar DNI
+                        </button>
+                      </div>
+                    </div>
                     <div className="mb-3"><label className="form-label">Nombre</label><input type="text" className="form-control" value={formData.personGivenName} onChange={(e) => setFormData({ ...formData, personGivenName: e.target.value })} required /></div>
                     <div className="mb-3"><label className="form-label">Apellido</label><input type="text" className="form-control" value={formData.personFamilyName} onChange={(e) => setFormData({ ...formData, personFamilyName: e.target.value })} required /></div>
                     <div className="mb-3"><label className="form-label">ID</label><input type="text" className="form-control" value={formData.personCode} onChange={(e) => setFormData({ ...formData, personCode: e.target.value })} /></div>
-                    <div className="mb-3"><label className="form-label">DNI/Documento</label><input type="text" className="form-control" value={formData.certificateNumber} onChange={(e) => setFormData({ ...formData, certificateNumber: e.target.value })} placeholder="Número de documento de identidad" /></div>
+
                     <div className="mb-3"><label className="form-label">Género</label><select className="form-select" value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })}><option value="1">Masculino</option><option value="2">Femenino</option></select></div>
                     <div className="mb-3"><label className="form-label">Teléfono</label><input type="text" className="form-control" value={formData.phoneNo} onChange={(e) => setFormData({ ...formData, phoneNo: e.target.value })} /></div>
 

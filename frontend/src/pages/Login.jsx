@@ -27,14 +27,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-md-6 col-lg-5 col-xl-4">
             <div className="card shadow-xl border-0 fade-in">
               <div className="card-body p-5">
                 <div className="text-center mb-4">
-                  <div className="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{width: '80px', height: '80px'}}>
+                  <div className="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '80px', height: '80px' }}>
                     <img src={escudo} alt="UNALM" width="50" />
                   </div>
                   <h2 className="fw-bold text-primary mb-2">UNALM</h2>

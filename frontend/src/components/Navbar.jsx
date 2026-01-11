@@ -27,7 +27,7 @@ export default function Navbar() {
           <i className="bi bi-shield-check-fill me-2"></i>
           UNALM
         </Link>
-        
+
         <button
           className="navbar-toggler border-0"
           type="button"
@@ -42,7 +42,7 @@ export default function Navbar() {
             <li className="nav-item">
               <Link className="nav-link d-flex align-items-center" to="/dashboard">
                 <i className="bi bi-house-door me-1"></i>
-                Dashboard
+                INICIO
               </Link>
             </li>
             <li className="nav-item">

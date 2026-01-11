@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { personService } from '../services/api';
+import { personService, externalService } from '../services/api';
 import Navbar from '../components/Navbar';
 
 export default function Persons() {
@@ -36,10 +36,11 @@ export default function Persons() {
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [editData, setEditData] = useState({});
   const [cameraSize, setCameraSize] = useState('normal'); // 'normal' o 'large'
-<<<<<<< HEAD
-=======
   const [showPhotoModal, setShowPhotoModal] = useState(false);
->>>>>>> 69b9cd5d664057455299bd67b0605b1077f65a54
+
+  // Estados para alertas dentro del modal
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
 
   useEffect(() => {
     loadPersons();
@@ -127,7 +128,7 @@ export default function Persons() {
     try {
       setLoading(true);
       const response = await personService.listPersons(
-        searchTerm ? 1 : currentPage, 
+        searchTerm ? 1 : currentPage,
         itemsPerPage,
         searchTerm || null
       );
@@ -189,7 +190,7 @@ export default function Persons() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
+
       // Convertir a base64
       const photoData = canvas.toDataURL('image/jpeg', 0.8);
       setFormData({ ...formData, photo: photoData });
@@ -207,15 +208,46 @@ export default function Persons() {
     setCameraSize(cameraSize === 'normal' ? 'large' : 'normal');
   };
 
+  const handleConsultDni = async () => {
+    if (!formData.certificateNumber) {
+      setModalError('Por favor ingrese un número de DNI');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setModalError('');
+      setModalSuccess('');
+      const data = await externalService.consultDni(formData.certificateNumber);
+      if (data && data.success) {
+        setFormData(prev => ({
+          ...prev,
+          personGivenName: data.nombres || '',
+          personFamilyName: `${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`.trim(),
+        }));
+        setModalSuccess('Datos del DNI obtenidos correctamente');
+      } else {
+        setModalError('No se encontraron datos para este DNI');
+      }
+    } catch (error) {
+      console.error('Error consultando DNI:', error);
+      setModalError('Error al consultar DNI');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setModalError('');
+    setModalSuccess('');
     setError('');
     setSuccess('');
 
     try {
       // Preparar datos para enviar
       const dataToSend = { ...formData };
-      
+
       // Convertir fechas al formato ISO requerido por la API
       if (dataToSend.effectiveDate) {
         dataToSend.effectiveDate = `${dataToSend.effectiveDate}T00:00:00-05:00`;
@@ -223,10 +255,10 @@ export default function Persons() {
       if (dataToSend.expiredDate) {
         dataToSend.expiredDate = `${dataToSend.expiredDate}T23:59:59-05:00`;
       }
-      
+
       const response = await personService.addPerson(dataToSend);
       if (response.success) {
-        setSuccess('Persona agregada exitosamente');
+        setSuccess('Persona agregada exitosamente'); // Mensaje global para pantalla principal
         setShowAddModal(false);
         setFormData({
           personGivenName: '',
@@ -245,7 +277,7 @@ export default function Persons() {
         loadPersons();
       }
     } catch (error) {
-      setError(error.response?.data?.detail || 'Error al agregar persona');
+      setModalError(error.response?.data?.detail || 'Error al agregar persona');
     }
   };
 
@@ -289,7 +321,7 @@ export default function Persons() {
     try {
       // Preparar datos para enviar
       const dataToSend = { ...editData };
-      
+
       // Convertir fechas al formato ISO requerido por la API
       if (dataToSend.effectiveDate) {
         dataToSend.effectiveDate = `${dataToSend.effectiveDate}T00:00:00-05:00`;
@@ -297,7 +329,7 @@ export default function Persons() {
       if (dataToSend.expiredDate) {
         dataToSend.expiredDate = `${dataToSend.expiredDate}T23:59:59-05:00`;
       }
-      
+
       await personService.updatePerson(selectedPerson.personId, dataToSend);
       setSuccess('Persona actualizada exitosamente');
       setShowEditModal(false);
@@ -423,41 +455,41 @@ export default function Persons() {
                           <td>{person.certificateNumber || 'N/A'}</td>
                           <td>{person.plateNo || 'N/A'}</td>
                           <td className="d-none d-lg-table-cell">
-                            {person.beginTime 
+                            {person.beginTime
                               ? (() => {
-                                  try {
-                                    // Puede ser timestamp Unix (número) o ISO string
-                                    const date = typeof person.beginTime === 'number' 
-                                      ? new Date(person.beginTime * 1000)
-                                      : new Date(person.beginTime);
-                                    return date.toLocaleDateString('es-ES', {
-                                      year: 'numeric',
-                                      month: '2-digit',
-                                      day: '2-digit'
-                                    });
-                                  } catch (e) {
-                                    return person.beginTime;
-                                  }
-                                })()
+                                try {
+                                  // Puede ser timestamp Unix (número) o ISO string
+                                  const date = typeof person.beginTime === 'number'
+                                    ? new Date(person.beginTime * 1000)
+                                    : new Date(person.beginTime);
+                                  return date.toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit'
+                                  });
+                                } catch (e) {
+                                  return person.beginTime;
+                                }
+                              })()
                               : 'N/A'}
                           </td>
                           <td className="d-none d-lg-table-cell">
-                            {person.endTime 
+                            {person.endTime
                               ? (() => {
-                                  try {
-                                    // Puede ser timestamp Unix (número) o ISO string
-                                    const date = typeof person.endTime === 'number' 
-                                      ? new Date(person.endTime * 1000)
-                                      : new Date(person.endTime);
-                                    return date.toLocaleDateString('es-ES', {
-                                      year: 'numeric',
-                                      month: '2-digit',
-                                      day: '2-digit'
-                                    });
-                                  } catch (e) {
-                                    return person.endTime;
-                                  }
-                                })()
+                                try {
+                                  // Puede ser timestamp Unix (número) o ISO string
+                                  const date = typeof person.endTime === 'number'
+                                    ? new Date(person.endTime * 1000)
+                                    : new Date(person.endTime);
+                                  return date.toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit'
+                                  });
+                                } catch (e) {
+                                  return person.endTime;
+                                }
+                              })()
                               : 'N/A'}
                           </td>
                           <td className="d-none d-lg-table-cell">{getOrgName(person.orgIndexCode)}</td>
@@ -511,7 +543,7 @@ export default function Persons() {
                     ‹
                   </button>
                 </li>
-                
+
                 {/* Mostrar páginas */}
                 {[...Array(totalPages)].map((_, index) => {
                   const pageNumber = index + 1;
@@ -585,6 +617,35 @@ export default function Persons() {
                 </div>
                 <form onSubmit={handleSubmit}>
                   <div className="modal-body">
+                    {modalError && (
+                      <div className="alert alert-danger" role="alert">
+                        {modalError}
+                      </div>
+                    )}
+                    {modalSuccess && (
+                      <div className="alert alert-success" role="alert">
+                        {modalSuccess}
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <label className="form-label">DNI/Documento</label>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formData.certificateNumber}
+                          onChange={(e) => setFormData({ ...formData, certificateNumber: e.target.value })}
+                          placeholder="Número de documento de identidad"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={handleConsultDni}
+                        >
+                          Consultar DNI
+                        </button>
+                      </div>
+                    </div>
                     <div className="mb-3">
                       <label className="form-label">Nombre</label>
                       <input
@@ -617,16 +678,7 @@ export default function Persons() {
                       />
                     </div>
 
-                    <div className="mb-3">
-                      <label className="form-label">DNI/Documento</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={formData.certificateNumber}
-                        onChange={(e) => setFormData({ ...formData, certificateNumber: e.target.value })}
-                        placeholder="Número de documento de identidad"
-                      />
-                    </div>
+
 
                     <div className="mb-3">
                       <label className="form-label">Género</label>

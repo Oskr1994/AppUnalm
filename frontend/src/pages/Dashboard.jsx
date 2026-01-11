@@ -23,7 +23,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="row g-4 mb-5">
             <div className="col-md-6 col-lg-4">
               <div className="card h-100 border-0">
@@ -136,10 +136,9 @@ export default function Dashboard() {
                     <div className="col-md-6">
                       <div className="p-3 bg-light rounded">
                         <small className="text-muted d-block">Rol</small>
-                        <span className={`badge fs-6 px-3 py-2 ${
-                          user?.role === 'admin' ? 'bg-danger' :
-                          user?.role === 'operador' ? 'bg-warning' : 'bg-info'
-                        }`}>
+                        <span className={`badge fs-6 px-3 py-2 ${user?.role === 'admin' ? 'bg-danger' :
+                            user?.role === 'operador' ? 'bg-warning' : 'bg-info'
+                          }`}>
                           {user?.role}
                         </span>
                       </div>
