@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
-import api from '../services/api';
+import api, { authService } from '../services/api';
 
 export default function Users() {
+  // Force refresh
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,8 @@ export default function Users() {
     password: '',
     role: 'viewer',
   });
+
+  const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     loadUsers();
@@ -35,34 +39,100 @@ export default function Users() {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      email: '',
+      full_name: '',
+      password: '',
+      role: 'viewer',
+    });
+    setEditingUser(null);
+    setShowAddModal(false);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleAddClick = () => {
+    resetForm();
+    setShowAddModal(true);
+  };
+
+  const handleEditClick = (user) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email,
+      full_name: user.full_name || '',
+      password: '', // Password not required for edit
+      role: user.role,
+    });
+    setError('');
+    setSuccess('');
+    setShowAddModal(true);
+  };
+
+  const handleDeleteClick = async (userId) => {
+    if (window.confirm('¿Está seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
+      try {
+        await authService.deleteUser(userId);
+        setSuccess('Usuario eliminado exitosamente');
+        loadUsers();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        setError(error.response?.data?.detail || 'Error al eliminar usuario');
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
     try {
-      await api.post('/auth/register', formData);
-      setSuccess('Usuario creado exitosamente');
-      setShowAddModal(false);
-      setFormData({
-        username: '',
-        email: '',
-        full_name: '',
-        password: '',
-        role: 'viewer',
-      });
+      if (editingUser) {
+        // Edit mode
+        const dataToSend = { ...formData };
+        delete dataToSend.password; // Don't send empty password on edit
+        delete dataToSend.username; // Username usually shouldn't be changed or needs backend support
+
+        await authService.updateUser(editingUser.id, dataToSend);
+        setSuccess('Usuario actualizado exitosamente');
+      } else {
+        // Create mode
+        await api.post('/auth/register', formData);
+        setSuccess('Usuario creado exitosamente');
+      }
+
+      resetForm();
       loadUsers();
     } catch (error) {
-      setError(error.response?.data?.detail || 'Error al crear usuario');
+      console.error('Error saving user:', error);
+      let errorMessage = 'Error al guardar usuario';
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // FastAPI validation error array
+          errorMessage = error.response.data.detail
+            .map(err => `${err.loc?.[1] || 'Field'}: ${err.msg} `)
+            .join(', ');
+        } else {
+          errorMessage = JSON.stringify(error.response.data.detail);
+        }
+      }
+      setError(errorMessage);
     }
   };
 
   const getRoleBadge = (role) => {
     const badges = {
       admin: 'bg-danger',
-      operador: 'bg-warning text-dark',
+      gestion_vehicular: 'bg-primary',
+      gestion_peatonal: 'bg-warning text-dark',
+      postulante: 'bg-success',
       viewer: 'bg-info',
-      personal_seguridad: 'bg-success',
     };
     return badges[role] || 'bg-secondary';
   };
@@ -70,9 +140,10 @@ export default function Users() {
   const getRoleLabel = (role) => {
     const labels = {
       admin: 'Administrador',
-      operador: 'Operador',
+      gestion_vehicular: 'Gestión Vehicular',
+      gestion_peatonal: 'Gestión Peatonal',
+      postulante: 'Postulante',
       viewer: 'Visualizador',
-      personal_seguridad: 'Personal de Seguridad',
     };
     return labels[role] || role;
   };
@@ -85,7 +156,7 @@ export default function Users() {
           <h2>Gestión de Usuarios</h2>
           <button
             className="btn btn-primary"
-            onClick={() => setShowAddModal(true)}
+            onClick={handleAddClick}
           >
             <i className="bi bi-plus-lg me-2"></i>
             Agregar Usuario
@@ -125,12 +196,13 @@ export default function Users() {
                       <th>Rol</th>
                       <th>Estado</th>
                       <th>Fecha Creación</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="text-center">
+                        <td colSpan="7" className="text-center">
                           No hay usuarios registrados
                         </td>
                       </tr>
@@ -143,7 +215,7 @@ export default function Users() {
                           <td>{u.full_name || '-'}</td>
                           <td>{u.email}</td>
                           <td>
-                            <span className={`badge ${getRoleBadge(u.role)}`}>
+                            <span className={`badge ${getRoleBadge(u.role)} `}>
                               {getRoleLabel(u.role)}
                             </span>
                           </td>
@@ -157,6 +229,16 @@ export default function Users() {
                           <td>
                             {new Date(u.created_at).toLocaleDateString('es-ES')}
                           </td>
+                          <td>
+                            <div className="btn-group btn-group-sm">
+                              <button className="btn btn-outline-primary" onClick={() => handleEditClick(u)} title="Editar">
+                                <i className="bi bi-pencil"></i>
+                              </button>
+                              <button className="btn btn-outline-danger" onClick={() => handleDeleteClick(u.id)} title="Eliminar">
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -167,13 +249,13 @@ export default function Users() {
           </div>
         )}
 
-        {/* Modal para agregar usuario */}
+        {/* Modal para agregar/editar usuario */}
         {showAddModal && (
           <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title">Agregar Usuario</h5>
+                  <h5 className="modal-title">{editingUser ? 'Editar Usuario' : 'Agregar Usuario'}</h5>
                   <button
                     type="button"
                     className="btn-close"
@@ -183,13 +265,14 @@ export default function Users() {
                 <form onSubmit={handleSubmit}>
                   <div className="modal-body">
                     <div className="mb-3">
-                      <label className="form-label">Usuario *</label>
+                      <label className="form-label">Usuario {editingUser ? '(No editable)' : '*'}</label>
                       <input
                         type="text"
                         className="form-control"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         required
+                        disabled={!!editingUser}
                       />
                     </div>
 
@@ -214,18 +297,20 @@ export default function Users() {
                       />
                     </div>
 
-                    <div className="mb-3">
-                      <label className="form-label">Contraseña *</label>
-                      <input
-                        type="password"
-                        className="form-control"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        required
-                        minLength="6"
-                      />
-                      <small className="text-muted">Mínimo 6 caracteres</small>
-                    </div>
+                    {!editingUser && (
+                      <div className="mb-3">
+                        <label className="form-label">Contraseña *</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          required
+                          minLength="6"
+                        />
+                        <small className="text-muted">Mínimo 6 caracteres</small>
+                      </div>
+                    )}
 
                     <div className="mb-3">
                       <label className="form-label">Rol *</label>
@@ -235,8 +320,9 @@ export default function Users() {
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       >
                         <option value="viewer">Visualizador (solo lectura)</option>
-                        <option value="operador">Operador (agregar/editar)</option>
-                        <option value="personal_seguridad">Personal de Seguridad</option>
+                        <option value="gestion_vehicular">Gestión Vehicular</option>
+                        <option value="gestion_peatonal">Gestión Peatonal</option>
+                        <option value="postulante">Postulante</option>
                         <option value="admin">Administrador (control total)</option>
                       </select>
                     </div>
@@ -250,7 +336,7 @@ export default function Users() {
                       Cancelar
                     </button>
                     <button type="submit" className="btn btn-primary">
-                      Crear Usuario
+                      {editingUser ? 'Actualizar' : 'Crear Usuario'}
                     </button>
                   </div>
                 </form>

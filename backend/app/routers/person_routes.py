@@ -22,7 +22,7 @@ _vehicles_cache = {
 @router.post("/add", response_model=schemas.MessageResponse)
 async def add_person(
     person: schemas.PersonCreate,
-    current_user: models.User = Depends(auth.require_role(["admin", "operador", "personal_seguridad"]))
+    current_user: models.User = Depends(auth.require_role(["admin", "gestion_vehicular", "gestion_peatonal", "postulante"]))
 ):
     """Agrega una persona a HikCentral (requiere rol admin, operador o personal_seguridad)"""
     # Preparar datos básicos de la persona SIN el DNI
@@ -250,7 +250,7 @@ async def add_person(
 @router.post("/upload-photo")
 async def upload_photo_endpoint(
     payload: dict,
-    current_user: models.User = Depends(auth.require_role(["admin", "operador", "personal_seguridad"]))
+    current_user: models.User = Depends(auth.require_role(["admin", "gestion_vehicular", "gestion_peatonal", "postulante"]))
 ):
     """Recibe una foto en base64 y la sube a HikCentral usando el endpoint
     /artemis/api/resource/v1/person/face/update
@@ -289,7 +289,7 @@ async def upload_photo_endpoint(
 async def update_person_endpoint(
     person_id: str,
     person: schemas.PersonCreate,
-    current_user: models.User = Depends(auth.require_role(["admin", "operador", "personal_seguridad"]))
+    current_user: models.User = Depends(auth.require_role(["admin", "gestion_vehicular", "gestion_peatonal", "postulante"]))
 ):
     """Actualiza una persona existente en HikCentral (requiere rol admin, operador o personal_seguridad)"""
     
@@ -743,7 +743,7 @@ async def get_person(
 @router.post("/assign-access-level", response_model=schemas.MessageResponse)
 async def assign_access_level(
     assignment: schemas.AccessLevelAssign,
-    current_user: models.User = Depends(auth.require_role(["admin", "operador"]))
+    current_user: models.User = Depends(auth.require_role(["admin", "gestion_vehicular", "gestion_peatonal", "postulante"]))
 ):
     """Asigna un access level a una persona"""
     result = hik_api.assign_access_level(

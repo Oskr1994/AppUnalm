@@ -115,7 +115,7 @@ export default function Login() {
                 <div className="text-center">
                   <small className="text-muted">
                     <i className="bi bi-info-circle me-1"></i>
-                    Usuario demo: <strong>admin</strong> / Contraseña: <strong>admin123</strong>
+                    Software demo by OscarDev
                   </small>
                 </div>
               </div>

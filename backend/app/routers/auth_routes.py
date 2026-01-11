@@ -73,3 +73,32 @@ async def list_users(
     """Lista todos los usuarios (solo admin)"""
     users = db.query(models.User).all()
     return users
+
+@router.put("/users/{user_id}", response_model=schemas.User)
+def update_user_endpoint(
+    user_id: int,
+    user_update: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_role(["admin"]))
+):
+    """Actualiza un usuario (solo admin)"""
+    updated_user = auth.update_user(db, user_id, user_update)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return updated_user
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_role(["admin"]))
+):
+    """Elimina un usuario (solo admin)"""
+    # Evitar que el admin se elimine a sí mismo
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta")
+        
+    success = auth.delete_user(db, user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return None

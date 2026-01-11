@@ -13,9 +13,10 @@ export default function Navbar() {
   const getRoleBadge = (role) => {
     const badges = {
       admin: 'bg-danger',
-      operador: 'bg-warning',
+      gestion_vehicular: 'bg-primary',
+      gestion_peatonal: 'bg-warning text-dark',
+      postulante: 'bg-success',
       viewer: 'bg-info',
-      personal_seguridad: 'bg-success',
     };
     return badges[role] || 'bg-secondary';
   };
@@ -45,12 +46,30 @@ export default function Navbar() {
                 INICIO
               </Link>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link d-flex align-items-center" to="/persons">
-                <i className="bi bi-people me-1"></i>
-                Personas
-              </Link>
-            </li>
+            {(user?.role === 'admin' || user?.role === 'gestion_vehicular') && (
+              <li className="nav-item">
+                <Link className="nav-link d-flex align-items-center" to="/persons">
+                  <i className="bi bi-people me-1"></i>
+                  Personas
+                </Link>
+              </li>
+            )}
+            {(user?.role === 'admin' || user?.role === 'gestion_peatonal') && (
+              <li className="nav-item">
+                <Link className="nav-link d-flex align-items-center" to="/pedestrian">
+                  <i className="bi bi-person-walking me-1"></i>
+                  Peatonal
+                </Link>
+              </li>
+            )}
+            {(user?.role === 'admin' || user?.role === 'postulante') && (
+              <li className="nav-item">
+                <Link className="nav-link d-flex align-items-center" to="/postulant">
+                  <i className="bi bi-person-plus me-1"></i>
+                  Postulante
+                </Link>
+              </li>
+            )}
             {user?.role === 'admin' && (
               <li className="nav-item">
                 <Link className="nav-link d-flex align-items-center" to="/users">

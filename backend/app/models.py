@@ -19,7 +19,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="viewer")  # admin, operador, viewer, personal_seguridad
+    role = Column(String, default="viewer")  # admin, gestion_vehicular, gestion_peatonal, postulante, viewer
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     

@@ -23,7 +23,6 @@ Aplicación web para la gestión de personas y accesos en el sistema HikCentral 
 ## 🚀 Funcionalidades
 - 🔐 Sistema de autenticación con roles (admin, operador, viewer)
 - 👥 Gestión completa de personas (CRUD)
-- 🔑 Asignación de niveles de acceso
 - 📊 Dashboard administrativo
 - 📷 Reconocimiento facial para peatones
 - 🏢 Gestión de organizaciones y grupos

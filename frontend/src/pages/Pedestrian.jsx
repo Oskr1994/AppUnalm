@@ -439,23 +439,32 @@ export default function Pedestrian() {
       croppedCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
 
       // Redimensionar a tamaño carnet (aprox 300x400 píxeles, manteniendo proporción)
-      const targetWidth = 300;
-      const targetHeight = 400;
-      const aspectRatio = width / height;
-      let finalWidth, finalHeight;
-      if (aspectRatio > targetWidth / targetHeight) {
-        finalWidth = targetWidth;
-        finalHeight = targetWidth / aspectRatio;
-      } else {
-        finalHeight = targetHeight;
-        finalWidth = targetHeight * aspectRatio;
-      }
-
+      const targetWidth = 135;
+      const targetHeight = 189;
       const finalCanvas = document.createElement('canvas');
-      const finalCtx = finalCanvas.getContext('2d');
       finalCanvas.width = targetWidth;
       finalCanvas.height = targetHeight;
-      finalCtx.drawImage(croppedCanvas, 0, 0, width, height, (targetWidth - finalWidth) / 2, (targetHeight - finalHeight) / 2, finalWidth, finalHeight);
+      const finalCtx = finalCanvas.getContext('2d');
+
+      // Calcular recorte para llenar todo el espacio (Cover) sin bordes negros
+      let sourceX = 0;
+      let sourceY = 0;
+      let sourceW = width;
+      let sourceH = height;
+      const targetRatio = targetWidth / targetHeight;
+      const sourceRatio = width / height;
+
+      if (sourceRatio > targetRatio) {
+        // La imagen es más ancha que el objetivo: recortar ancho
+        sourceW = height * targetRatio;
+        sourceX = (width - sourceW) / 2;
+      } else {
+        // La imagen es más alta que el objetivo: recortar alto
+        sourceH = width / targetRatio;
+        sourceY = (height - sourceH) / 2;
+      }
+
+      finalCtx.drawImage(croppedCanvas, sourceX, sourceY, sourceW, sourceH, 0, 0, targetWidth, targetHeight);
 
       // Convertir a data URL
       const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9);
@@ -608,7 +617,7 @@ export default function Pedestrian() {
 
   const totalPages = Math.ceil(totalPersons / itemsPerPage);
   const currentPersons = persons;
-  const canEdit = user?.role === 'admin' || user?.role === 'operador' || user?.role === 'personal_seguridad';
+  const canEdit = user?.role === 'admin' || user?.role === 'gestion_peatonal';
 
   const getOrgName = (orgIndexCode) => {
     if (!orgIndexCode) return 'N/A';

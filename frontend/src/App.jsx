@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Persons from './pages/Persons';
 import Pedestrian from './pages/Pedestrian';
 import Users from './pages/Users';
+import Postulant from './pages/Postulant';
 import './App.css';
 
 function App() {
@@ -25,7 +26,7 @@ function App() {
           <Route
             path="/persons"
             element={
-              <PrivateRoute>
+              <PrivateRoute roles={['admin', 'gestion_vehicular']}>
                 <Persons />
               </PrivateRoute>
             }
@@ -33,16 +34,8 @@ function App() {
           <Route
             path="/pedestrian"
             element={
-              <PrivateRoute>
+              <PrivateRoute roles={['admin', 'gestion_peatonal']}>
                 <Pedestrian />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/pedestrian"
-            element={
-              <PrivateRoute>
-                <Persons />
               </PrivateRoute>
             }
           />
@@ -51,6 +44,14 @@ function App() {
             element={
               <PrivateRoute roles={['admin']}>
                 <Users />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/postulant"
+            element={
+              <PrivateRoute roles={['admin', 'postulante']}>
+                <Postulant />
               </PrivateRoute>
             }
           />
