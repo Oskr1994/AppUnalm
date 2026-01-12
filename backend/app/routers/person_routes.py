@@ -6,6 +6,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
 from datetime import datetime, timedelta
+import difflib
 
 from .. import models, schemas, auth
 from ..database import get_db
@@ -325,30 +326,31 @@ async def update_person_endpoint(
         
         print(f"✓ Persona actualizada exitosamente")
         
-        # PASO 2: Si hay DNI, actualizarlo usando customFieldsUpdate
-        if person.certificateNumber and person.certificateNumber.strip():
-            print(f"Actualizando DNI a '{person.certificateNumber.strip()}'")
-            try:
-                # Obtener el personCode de la persona
+        # Recuperar personCode para operaciones avanzadas (DNI, Foto)
+        person_code_real = person.personCode
+        if not person_code_real:
+             # Intentar recuperarlo de HikCentral
+             try:
                 import time
                 time.sleep(0.3)
-                
                 list_response = hik_api.get_person_list(page_no=1, page_size=100)
-                person_code_real = None
-                
                 if str(list_response.get("code")) == "0":
-                    persons = list_response.get("data", {}).get("list", [])
-                    for p in persons:
+                    persons_list = list_response.get("data", {}).get("list", [])
+                    for p in persons_list:
                         if str(p.get("personId")) == str(person_id):
                             person_code_real = p.get("personCode")
                             print(f"PersonCode encontrado: {person_code_real}")
                             break
-                
+             except Exception as e:
+                 print(f"Error buscando personCode: {e}")
+
+        # PASO 2: Si hay DNI, actualizarlo usando customFieldsUpdate
+        if person.certificateNumber and person.certificateNumber.strip():
+            print(f"Actualizando DNI a '{person.certificateNumber.strip()}'")
+            try:
                 if not person_code_real:
-                    print(f"No se pudo obtener personCode, usando el proporcionado")
-                    person_code_real = person.personCode
-                
-                if person_code_real:
+                    print(f"No se pudo obtener personCode, saltando update de DNI")
+                else:
                     path = "/artemis/api/resource/v1/person/personId/customFieldsUpdate"
                     
                     update_data = {
@@ -372,6 +374,35 @@ async def update_person_endpoint(
                         print(f"✓ DNI actualizado exitosamente")
             except Exception as e:
                 print(f"Error al actualizar DNI: {str(e)}")
+
+        # PASO 2.5: Si hay Foto, actualizarla
+        if getattr(person, "photo", None):
+            print(f"Procesando actualización de foto")
+            try:
+                if not person_code_real:
+                    print("No se pudo obtener personCode, saltando update de Foto")
+                else:
+                    photo_val = getattr(person, "photo")
+                    # extraer base64 si viene como data URL
+                    if isinstance(photo_val, str) and photo_val.startswith("data:"):
+                        try:
+                            face_b64 = photo_val.split(",", 1)[1]
+                        except Exception:
+                            face_b64 = photo_val
+                    else:
+                        face_b64 = photo_val
+
+                    print("Subiendo foto a HikCentral para personCode:", person_code_real)
+                    path_face = "/artemis/api/resource/v1/person/face/update"
+                    body_face = {"personCode": person_code_real, "faceData": face_b64}
+                    face_resp = hik_api.post_signed(path_face, body_face)
+                    
+                    if str(face_resp.get("code")) != "0":
+                         print(f"Error al subir foto: {face_resp.get('msg')}")
+                    else:
+                         print(f"✓ Foto actualizada exitosamente")
+            except Exception as e:
+                print(f"Error al actualizar foto: {e}")
         
         # PASO 3: Si hay plateNo, actualizar el vehículo
         if person.plateNo and person.plateNo.strip():
@@ -556,7 +587,7 @@ async def list_persons(
         return ""
     
     def get_vehicles_map():
-        """Obtiene el mapeo de vehículos desde cache o API"""
+        """Obtiene el mapeo de vehículos desde cache o API (en paralelo)"""
         now = datetime.now()
         
         # Si el cache es válido, usarlo
@@ -570,29 +601,47 @@ async def list_persons(
         vehicles_map = {}
         
         try:
-            # Obtener todas las páginas de vehículos
-            all_vehicles = []
-            page = 1
-            while True:
-                vehicles_response = hik_api.list_vehicles(page_no=page, page_size=200, vehicle_group_code="2")
+            # Obtener primera página para saber el total
+            print("Obteniendo página 1 de vehículos...")
+            first_response = hik_api.list_vehicles(page_no=1, page_size=200, vehicle_group_code="2")
+            
+            if str(first_response.get("code")) != "0":
+                print(f"Error al obtener vehículos página 1: {first_response.get('msg')}")
+                return {}
+            
+            vehicles_data = first_response.get("data", {})
+            vehicles_list = vehicles_data.get("list", [])
+            total_vehicles = vehicles_data.get("total", 0)
+            
+            all_vehicles = vehicles_list
+            
+            # Calcular páginas restantes
+            import math
+            total_pages = math.ceil(total_vehicles / 200)
+            
+            if total_pages > 1:
+                print(f"Total vehículos: {total_vehicles}. Obteniendo {total_pages - 1} páginas restantes en paralelo...")
                 
-                if str(vehicles_response.get("code")) != "0":
-                    print(f"Error al obtener vehículos página {page}: {vehicles_response.get('msg')}")
-                    break
-                
-                vehicles_data = vehicles_response.get("data", {})
-                vehicles_list = vehicles_data.get("list", [])
-                
-                if not vehicles_list:
-                    break
-                
-                all_vehicles.extend(vehicles_list)
-                
-                total = vehicles_data.get("total", 0)
-                if page * 200 >= total:
-                    break
-                
-                page += 1
+                # Función helper para el thread pool
+                def fetch_vehicle_page(p_num):
+                    try:
+                        resp = hik_api.list_vehicles(page_no=p_num, page_size=200, vehicle_group_code="2")
+                        if str(resp.get("code")) == "0":
+                            return resp.get("data", {}).get("list", [])
+                        return []
+                    except Exception as e:
+                        print(f"Error fetching vehicle page {p_num}: {e}")
+                        return []
+
+                # Ejecutar peticiones en paralelo
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    from concurrent.futures import as_completed
+                    futures = [executor.submit(fetch_vehicle_page, p) for p in range(2, total_pages + 1)]
+                    
+                    for future in as_completed(futures):
+                        page_vehicles = future.result()
+                        if page_vehicles:
+                            all_vehicles.extend(page_vehicles)
             
             print(f"Total vehículos obtenidos: {len(all_vehicles)}")
             
@@ -613,85 +662,153 @@ async def list_persons(
             
         except Exception as e:
             print(f"Error al obtener vehículos: {str(e)}")
+            import traceback
+            traceback.print_exc()
         
         print(f"Tiempo de carga de vehículos: {time.time() - start:.2f}s")
         return vehicles_map
     
     def process_persons(persons_list: list, vehicles_map: dict) -> list:
         """Procesa la lista de personas agregando el DNI y las placas"""
+        processed = []
         for person in persons_list:
-            dni = extract_dni(person)
-            person["certificateNumber"] = dni
+            if not person: continue
+            
+            # Crear copia para no modificar el original si fuera necesario
+            p = person.copy()
+            
+            dni = extract_dni(p)
+            p["certificateNumber"] = dni
             
             # Asignar placas desde el mapeo
-            person_name = person.get("personName", "").strip()
+            person_name = p.get("personName", "").strip()
             plates = vehicles_map.get(person_name, [])
-            person["plateNo"] = ", ".join(plates) if plates else ""
+            p["plateNo"] = ", ".join(plates) if plates else ""
+            
+            processed.append(p)
         
-        return persons_list
+        return processed
     
-    # Si hay búsqueda, obtener todas las páginas y filtrar
-    if search:
+    # Si hay búsqueda, obtener TODAS las páginas en paralelo y filtrar en memoria
+    if search and search.strip():
+        search = search.strip()
+        print(f"Iniciando búsqueda optimizada para: '{search}'")
+        search_start = time.time()
+        
         all_persons = []
-        current_page = 1
-        total = 0
         search_lower = search.lower()
         
-        while True:
-            response = hik_api.get_person_list(current_page, page_size)
+        try:
+            # 1. Obtener primera página para saber el total
+            print("Obteniendo página 1 de personas...")
+            first_response = hik_api.get_person_list(page_no=1, page_size=page_size)
             
-            if str(response.get("code")) != "0":
+            if str(first_response.get("code")) != "0":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Error al obtener lista: {response.get('msg', 'Error desconocido')}"
+                    detail=f"Error al obtener lista: {first_response.get('msg', 'Error desconocido')}"
                 )
             
-            data = response.get("data", {})
-            persons = data.get("list", [])
+            data = first_response.get("data", {})
+            total_persons = data.get("total", 0)
+            persons_p1 = data.get("list", [])
             
-            if current_page == 1:
-                total = data.get("total", 0)
+            all_persons.extend(persons_p1)
             
-            # Primero extraer solo DNI sin buscar vehículos
-            for person in persons:
-                dni = extract_dni(person)
-                person["certificateNumber"] = dni
+            # 2. Calcular páginas
+            import math
+            total_pages = math.ceil(total_persons / page_size)
+            print(f"Total personas: {total_persons}. Páginas totales: {total_pages}")
             
-            # Filtrar personas que coincidan con la búsqueda
-            filtered = [
-                p for p in persons 
-                if search_lower in p.get("personName", "").lower() or 
-                   search_lower in p.get("personCode", "").lower() or 
-                   search_lower in p.get("certificateNumber", "").lower()
-            ]
-            all_persons.extend(filtered)
+            # 3. Obtener el resto en paralelo
+            if total_pages > 1:
+                print(f"Obteniendo {total_pages - 1} páginas de personas en paralelo...")
+                
+                def fetch_person_page(p_num):
+                    try:
+                        resp = hik_api.get_person_list(page_no=p_num, page_size=page_size)
+                        if str(resp.get("code")) == "0":
+                            return resp.get("data", {}).get("list", [])
+                        return []
+                    except Exception as e:
+                        print(f"Error fetching person page {p_num}: {e}")
+                        return []
+
+                with ThreadPoolExecutor(max_workers=20) as executor:  # Mayor concurrencia para búsqueda
+                    from concurrent.futures import as_completed
+                    # Lanzar todas las tareas
+                    futures = [executor.submit(fetch_person_page, p) for p in range(2, total_pages + 1)]
+                    
+                    # Recolectar resultados conforme llegan
+                    for future in as_completed(futures):
+                        page_persons = future.result()
+                        if page_persons:
+                            all_persons.extend(page_persons)
             
-            # Si no hay más personas o ya tenemos todas, salir
-            if not persons or len(all_persons) + (current_page * page_size - len(all_persons)) >= total:
-                if not persons:
-                    break
+            print(f"Total personas recuperadas: {len(all_persons)}. Tiempo descarga: {time.time() - search_start:.2f}s")
             
-            current_page += 1
-            if current_page > (total // page_size) + 1:
-                break
-        
-        # Obtener mapeo de vehículos y asignar placas
-        vehicles_map = get_vehicles_map()
-        all_persons = process_persons(all_persons, vehicles_map)
-        
-        return {
-            "message": "Búsqueda completada exitosamente",
-            "success": True,
-            "data": {
-                "persons": all_persons,
-                "total": len(all_persons),
-                "page": 1,
-                "pageSize": len(all_persons),
-                "isSearch": True
+            # 4. Filtrar en memoria
+            filtered_persons = []
+            for p in all_persons:
+                if not p: continue
+                # Pre-procesar para tener DNI disponible para búsqueda
+                dni = extract_dni(p)
+                p["certificateNumber"] = dni  # Asignar temporalmente para filtro
+                
+                # Calcular similitud
+                person_name = p.get("personName", "").lower()
+                person_code = p.get("personCode", "").lower()
+                dni_val = dni.lower()
+                
+                # Check simple (contiene)
+                match_name = search_lower in person_name
+                match_code = search_lower in person_code
+                match_dni = search_lower in dni_val
+                
+                if match_name or match_code or match_dni:
+                     # Calcular score para ordenamiento
+                     score = 0
+                     if match_name:
+                         score = max(score, difflib.SequenceMatcher(None, search_lower, person_name).ratio())
+                     if match_code:
+                         score = max(score, difflib.SequenceMatcher(None, search_lower, person_code).ratio())
+                     if match_dni:
+                         score = max(score, difflib.SequenceMatcher(None, search_lower, dni_val).ratio())
+                     
+                     p["_search_score"] = score
+                     filtered_persons.append(p)
+            
+            # Ordenar por score descendente
+            filtered_persons.sort(key=lambda x: x.get("_search_score", 0), reverse=True)
+            
+            # Limitar a top 30
+            filtered_persons = filtered_persons[:30]
+            
+            print(f"Personas tras filtrado y límite: {len(filtered_persons)}")
+            
+            # 5. Enriquecer con vehículos (solo a los filtrados para ahorrar tiempo)
+            vehicles_map = get_vehicles_map()
+            final_persons = process_persons(filtered_persons, vehicles_map)
+            
+            return {
+                "message": "Búsqueda completada exitosamente",
+                "success": True,
+                "data": {
+                    "persons": final_persons,
+                    "total": len(final_persons),
+                    "page": 1,
+                    "pageSize": len(final_persons),
+                    "isSearch": True
+                }
             }
-        }
+            
+        except Exception as e:
+            print(f"Error en búsqueda: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=str(e))
     
-    # Sin búsqueda, retornar solo la página solicitada
+    # Sin búsqueda: comportamiento normal (solo 1 página)
     response = hik_api.get_person_list(page_no, page_size)
     
     if str(response.get("code")) != "0":

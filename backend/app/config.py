@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # CORS
     FRONTEND_URL: str = "http://localhost:5173"
     
+    # Admin User
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_EMAIL: str = "admin@unalm.edu.pe"
+    ADMIN_PASSWORD: str = "admin123"
+    
     class Config:
         env_file = ".env"
 

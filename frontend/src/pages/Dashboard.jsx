@@ -140,10 +140,10 @@ export default function Dashboard() {
                     <div className="col-md-6">
                       <div className="p-3 bg-light rounded">
                         <small className="text-muted d-block">Rol</small>
-                        <span className={`badge fs-6 px-3 py-2 ${user?.role === 'admin' ? 'bg-danger' :
-                          user?.role === 'gestion_vehicular' ? 'bg-primary' :
-                            user?.role === 'gestion_peatonal' ? 'bg-warning text-dark' :
-                              user?.role === 'postulante' ? 'bg-success' : 'bg-info'
+                        <span className={`badge fs-6 px-3 py-2 ${user?.role === 'admin' ? 'bg-dark bg-opacity-75' :
+                          user?.role === 'gestion_vehicular' ? 'bg-dark bg-opacity-75' :
+                            user?.role === 'gestion_peatonal' ? 'bg-dark bg-opacity-75' :
+                              user?.role === 'postulante' ? 'bg-dark bg-opacity-75' : 'bg-dark bg-opacity-75'
                           }`}>
                           {user?.role === 'gestion_vehicular' ? 'Gestión Vehicular' :
                             user?.role === 'gestion_peatonal' ? 'Gestión Peatonal' :
@@ -155,7 +155,7 @@ export default function Dashboard() {
                     <div className="col-md-6">
                       <div className="p-3 bg-light rounded">
                         <small className="text-muted d-block">Estado</small>
-                        <span className="badge bg-success fs-6 px-3 py-2">Activo</span>
+                        <span className="badge bg-success bg-opacity-75 fs-6 px-3 py-2">Activo</span>
                       </div>
                     </div>
                   </div>

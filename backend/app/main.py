@@ -34,18 +34,18 @@ async def startup_event():
     db = SessionLocal()
     try:
         # Verificar si existe un admin
-        admin = db.query(models.User).filter(models.User.username == "admin").first()
+        admin = db.query(models.User).filter(models.User.username == settings.ADMIN_USERNAME).first()
         if not admin:
             from .schemas import UserCreate
             admin_user = UserCreate(
-                username="admin",
-                email="admin@unalm.edu.pe",
+                username=settings.ADMIN_USERNAME,
+                email=settings.ADMIN_EMAIL,
                 full_name="Administrador",
-                password="admin123",  # Contraseña simple para desarrollo
+                password=settings.ADMIN_PASSWORD,
                 role="admin"
             )
             auth.create_user(db, admin_user)
-            print("✅ Usuario admin creado: username=admin, password=admin123")
+            print(f"✅ Usuario admin creado: username={settings.ADMIN_USERNAME}")
             print("⚠️  IMPORTANTE: Cambiar contraseña en producción")
     except Exception as e:
         print(f"❌ Error al crear usuario admin: {e}")

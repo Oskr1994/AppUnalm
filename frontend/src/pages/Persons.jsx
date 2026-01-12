@@ -44,19 +44,23 @@ export default function Persons() {
     loadPersons();
     loadOrganizations();
     loadAccessLevels();
-  }, [currentPage]);
+  }, [currentPage, searchTerm]);
 
-  // Efecto para búsqueda con debounce
-  useEffect(() => {
-    if (searchTerm) {
-      const timeoutId = setTimeout(() => {
-        loadPersons();
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    } else {
-      loadPersons();
+  // Estado para el input de búsqueda temporal
+  const [tempSearch, setTempSearch] = useState('');
+
+  // Manejador de búsqueda manual
+  const handleSearch = () => {
+    setSearchTerm(tempSearch);
+    setCurrentPage(1);
+  };
+
+  // Manejador para detectar tecla Enter
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
-  }, [searchTerm]);
+  };
 
 
 
@@ -292,16 +296,24 @@ export default function Persons() {
           <div className="card-body">
             <div className="row align-items-center">
               <div className="col-md-8">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Buscar por nombre o código en todas las personas..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Buscar por nombre o código..."
+                    value={tempSearch}
+                    onChange={(e) => setTempSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={handleSearch}
+                  >
+                    <i className="bi bi-search me-2"></i>
+                    Buscar
+                  </button>
+                </div>
               </div>
               <div className="col-md-4 text-end mt-2 mt-md-0">
                 <span className="text-muted">

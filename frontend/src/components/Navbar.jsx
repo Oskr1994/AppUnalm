@@ -12,11 +12,11 @@ export default function Navbar() {
 
   const getRoleBadge = (role) => {
     const badges = {
-      admin: 'bg-danger',
-      gestion_vehicular: 'bg-primary',
-      gestion_peatonal: 'bg-warning text-dark',
-      postulante: 'bg-success',
-      viewer: 'bg-info',
+      admin: 'bg-dark bg-opacity-50',
+      gestion_vehicular: 'bg-dark bg-opacity-50',
+      gestion_peatonal: 'bg-dark bg-opacity-50',
+      postulante: 'bg-dark bg-opacity-50',
+      viewer: 'bg-dark bg-opacity-50',
     };
     return badges[role] || 'bg-secondary';
   };
