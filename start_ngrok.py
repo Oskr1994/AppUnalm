@@ -8,15 +8,16 @@ from pyngrok import ngrok
 import time
 import sys
 
-def start_ngrok_tunnel(port=5176):
+def start_ngrok_tunnel(port=5173):
     """
     Inicia un túnel ngrok para el puerto especificado
     """
     try:
         print(f"🚀 Iniciando túnel ngrok para el puerto {port}...")
 
-        # Crear túnel
-        public_url = ngrok.connect(port)
+        # Crear túnel apuntando a HTTPS local
+        # bind_tls=True dice que el servidor local usa SSL
+        public_url = ngrok.connect(f"https://localhost:{port}")
         print(f"✅ Túnel creado exitosamente!")
         print(f"🔗 URL HTTPS: {public_url}")
         print()
@@ -47,7 +48,7 @@ def start_ngrok_tunnel(port=5176):
     return 0
 
 if __name__ == "__main__":
-    port = 5176  # Puerto del frontend
+    port = 5173  # Puerto del frontend
 
     print("🔐 NGROK TUNNEL PARA ACCESO HTTPS")
     print("=" * 40)

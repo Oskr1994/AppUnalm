@@ -174,7 +174,6 @@ export default function Persons() {
           effectiveDate: '',
           expiredDate: '',
           orgIndexCode: '1',
-          orgIndexCode: '1',
         });
 
         loadPersons();

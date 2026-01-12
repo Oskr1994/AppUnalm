@@ -2,13 +2,8 @@ import axios from 'axios';
 
 
 
-// Construir la URL del backend usando la IP del servidor
-// Esto permite que otros dispositivos en la misma red se conecten al backend
-const API_HOST = typeof window !== 'undefined'
-  ? `${window.location.protocol}//${window.location.hostname}:8000`
-  : 'http://localhost:8000';
-
-const API_URL = `${API_HOST}/api`;
+// Usar ruta relativa para aprovechar el Proxy de Vite
+const API_URL = '/api';
 
 const api = axios.create({
   baseURL: API_URL,

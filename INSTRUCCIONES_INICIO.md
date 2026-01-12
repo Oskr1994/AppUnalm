@@ -175,3 +175,30 @@ APP_UNALM/
     ├── src/
     └── package.json
 ```
+
+---
+
+## 🌍 Acceso Remoto Seguro (Ngrok)
+
+Para acceder a la cámara desde otros dispositivos (celular, tablet) fuera de la red local o si tienes problemas de firewall, usa **Ngrok**. Esto crea una conexión segura (HTTPS) necesaria para la cámara.
+
+### 1️⃣ Activar el Servicio
+1. Asegúrate de que el **Frontend** esté corriendo (`npm run dev -- --host`).
+2. Abre una **nueva terminal** en la carpeta principal (`APP_UNALM`).
+3. Ejecuta:
+   ```powershell
+   python start_ngrok.py
+   ```
+
+### 2️⃣ Usar el Servicio
+- El script mostrará una URL segura, por ejemplo: `https://abcd-1234.ngrok-free.app`
+- Comparte esa URL con tus usuarios o dispositivos.
+- **Importante:** Al abrir el link, verás una pantalla de advertencia de Ngrok. Haz clic en **"Visit Site"** para continuar.
+
+### 3️⃣ Desactivar
+- En la terminal donde corre ngrok, presiona **`Ctrl + C`**.
+- El túnel se cerrará y la URL dejará de funcionar inmediatamente.
+
+### 4️⃣ Reactivar
+- Simplemente vuelve a ejecutar `python start_ngrok.py`.
+- **Nota:** La URL cambiará cada vez que reinicies el servicio (a menos que tengas una cuenta de pago de Ngrok). Asegúrate de compartir el nuevo link.
