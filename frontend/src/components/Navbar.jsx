@@ -22,11 +22,10 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-lg">
+    <nav className="navbar navbar-expand-lg navbar-dark shadow-lg" style={{ backgroundColor: '#0D5F2C' }}>
       <div className="container-fluid">
         <Link className="navbar-brand fw-bold d-flex align-items-center" to="/dashboard">
-          <i className="bi bi-shield-check-fill me-2"></i>
-          UNALM
+          <i className="bi bi-shield-check-fill me-2"><img src="/src/images/unalm-logo-blanco.webp" width={250}></img>  </i>
         </Link>
 
         <button

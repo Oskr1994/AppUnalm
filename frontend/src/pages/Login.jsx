@@ -27,17 +27,17 @@ export default function Login() {
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-primary bg-opacity-25">
+    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#0D5F2C'}}>
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-md-6 col-lg-5 col-xl-4">
             <div className="card shadow-xl border-0 fade-in">
               <div className="card-body p-5">
                 <div className="text-center mb-4">
-                  <div className="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '80px', height: '80px' }}>
+                  <div className="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '80px', height: '80px' }}>
                     <img src={escudo} alt="UNALM" width="50" />
                   </div>
-                  <h2 className="fw-bold text-primary mb-2">UNALM</h2>
+                  <h2 className="fw-bold mb-2" style={{ color: '#0D5F2C' }}>UNALM</h2>
                   <p className="text-muted mb-0">Sistema de Gestión de Acceso</p>
                   <small className="text-muted">Valtar Security</small>
                 </div>
@@ -95,18 +95,18 @@ export default function Login() {
 
                   <button
                     type="submit"
-                    className="btn btn-primary w-100 btn-lg py-3 mb-3"
+                    className="btn w-100 btn-lg py-3 mb-3"
+                    style={{ backgroundColor: '#0D5F2C' }}
                     disabled={loading}
                   >
                     {loading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style={{ color: '#ffffff' }}></span>
                         Iniciando sesión...
                       </>
                     ) : (
                       <>
-                        <i className="bi bi-box-arrow-in-right me-2"></i>
-                        Iniciar Sesión
+                        <i className="bi bi-box-arrow-in-right me-2" style={{ color: '#ffffff' }}> Iniciar Sesión</i>
                       </>
                     )}
                   </button>

@@ -14,7 +14,7 @@ export default function Dashboard() {
             <div className="col-12">
               <div className="d-flex align-items-center mb-4">
                 <div className="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
-                  <i className="bi bi-house-door-fill text-primary fs-2"></i>
+                  <i className="bi bi-house-door-fill fs-2" style={{ color: '#0D5F2C' }}></i>
                 </div>
                 <div>
                   <h1 className="mb-1">Bienvenido, {user?.full_name || user?.username}!</h1>
