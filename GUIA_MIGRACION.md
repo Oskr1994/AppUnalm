@@ -29,7 +29,7 @@ Tienes dos opciones:
 
 1.  Abre una terminal en la carpeta `backend`:
     ```powershell
-    cd APP_UNALM/backend
+    cd AppUnalm/backend
     ```
 
 2.  **Crear entorno virtual:**

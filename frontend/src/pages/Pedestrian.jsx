@@ -259,7 +259,7 @@ export default function Pedestrian() {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Gestión Peatonal</h2>
           {canEdit && (
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <button className="btn" style={{ backgroundColor: '#0D5F2C', color: 'white' }} onClick={() => setShowAddModal(true)}>
               <i className="bi bi-plus-lg me-2"></i>
               Agregar Peatón
             </button>
@@ -294,7 +294,8 @@ export default function Pedestrian() {
                     onKeyDown={handleKeyDown}
                   />
                   <button
-                    className="btn btn-primary"
+                    className="btn"
+                    style={{ backgroundColor: '#0D5F2C', color: 'white' }}
                     type="button"
                     onClick={handleSearch}
                   >
@@ -313,7 +314,7 @@ export default function Pedestrian() {
         </div>
 
         {loading ? (
-          <div className="text-center py-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">Cargando...</span></div></div>
+          <div className="text-center py-5"><div className="spinner-border" style={{ color: '#0D5F2C' }} role="status"><span className="visually-hidden">Cargando...</span></div></div>
         ) : (
           <div className="card">
             <div className="card-body">
@@ -344,7 +345,7 @@ export default function Pedestrian() {
                           <td className="d-none d-lg-table-cell">{getOrgName(person.orgIndexCode)}</td>
                           {canEdit && (
                             <td>
-                              <button className="btn btn-sm btn-primary" onClick={() => handleEditClick(person)} title="Editar persona"><i className="bi bi-pencil me-1"></i>Editar</button>
+                              <button className="btn btn-sm" style={{ backgroundColor: '#0D5F2C', color: 'white' }} onClick={() => handleEditClick(person)} title="Editar persona"><i className="bi bi-pencil me-1"></i>Editar</button>
                             </td>
                           )}
                         </tr>
@@ -521,7 +522,7 @@ export default function Pedestrian() {
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancelar</button>
-                    <button type="submit" className="btn btn-primary">Agregar</button>
+                    <button type="submit" className="btn" style={{ backgroundColor: '#0D5F2C', color: 'white' }}>Agregar</button>
                   </div>
                 </form>
               </div>
@@ -609,7 +610,7 @@ export default function Pedestrian() {
                       </div>
                     </div>
                   </div>
-                  <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancelar</button><button type="submit" className="btn btn-primary"><i className="bi bi-save me-2"></i>Guardar Cambios</button></div>
+                  <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancelar</button><button type="submit" className="btn" style={{ backgroundColor: '#0D5F2C', color: 'white' }}><i className="bi bi-save me-2"></i>Guardar Cambios</button></div>
                 </form>
               </div>
             </div>

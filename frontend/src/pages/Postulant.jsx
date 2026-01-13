@@ -580,12 +580,12 @@ export default function Postulant() {
                 {!showAddModal ? (
                     <>
                         <div className="text-center mb-5">
-                            <h1 className="display-4 fw-bold text-primary mb-3">Area de Postulantes</h1>
+                            <h1 className="display-4 fw-bold mb-3" style={{ color: '#0D5F2C' }}>Area de Postulantes</h1>
                             <p className="lead text-muted">Bienvenido al sistema de registro.</p>
 
                             <div className="card text-start mx-auto mb-4" style={{ maxWidth: '600px', backgroundColor: '#f8f9fa' }}>
                                 <div className="card-body">
-                                    <h5 className="card-title fw-bold mb-3"><i className="bi bi-info-circle-fill text-primary me-2"></i>Pasos para registrarse:</h5>
+                                    <h5 className="card-title fw-bold mb-3"><i className="bi bi-info-circle-fill me-2" style={{ color: '#0D5F2C' }}></i>Pasos para registrarse:</h5>
                                     <ol className="mb-0 ps-3">
                                         <li className="mb-2">Haga clic en el botón <strong>"Registrate Ahora"</strong>.</li>
                                         <li className="mb-2">Ingrese su número de DNI y presione <strong>"Consultar"</strong>. Sus nombres se completarán automáticamente.</li>
@@ -598,21 +598,21 @@ export default function Postulant() {
                         </div>
 
                         <button
-                            className="btn btn-primary btn-lg rounded-pill shadow-lg px-5 py-3 d-flex align-items-center gap-3 transition-all hover-scale"
-                            style={{ fontSize: '1.5rem', transition: 'transform 0.2s', transform: 'scale(1)' }}
+                            className="btn btn-lg rounded-pill shadow-lg px-5 py-3 d-flex align-items-center gap-3 transition-all hover-scale"
+                            style={{ fontSize: '1.5rem', transition: 'transform 0.2s', transform: 'scale(1)', backgroundColor: '#0D5F2C' }}
                             onClick={() => { setShowAddModal(true); setError(''); setSuccess(''); }}
                             onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                             onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         >
-                            <div className="bg-white text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px' }}>
+                            <div className="bg-white rounded-circle p-2 d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px', color: '#0D5F2C' }}>
                                 <i className="bi bi-person-plus-fill fs-4"></i>
                             </div>
-                            <span>Registrate Ahora</span>
+                            <span style={{ color: 'white' }}>Registrate Ahora</span>
                         </button>
                     </>
                 ) : (
                     <div className="card shadow-lg w-100" style={{ maxWidth: '800px' }}>
-                        <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <div className="card-header text-white d-flex justify-content-between align-items-center" style={{ backgroundColor: '#0D5F2C' }}>
                             <h4 className="mb-0">Formulario de Postulación</h4>
                             <button className="btn-close btn-close-white" onClick={() => setShowAddModal(false)}></button>
                         </div>
@@ -647,7 +647,8 @@ export default function Postulant() {
                                                         <i className="bi bi-camera-video fs-1 text-muted mb-3 d-block"></i>
                                                         <button
                                                             type="button"
-                                                            className="btn btn-primary"
+                                                            className="btn"
+                                                            style={{ backgroundColor: '#0D5F2C', color: 'white' }}
                                                             onClick={() => { setCameraActive(true); startCamera(); }}
                                                         >
                                                             <i className="bi bi-play-circle me-2"></i> Iniciar Cámara

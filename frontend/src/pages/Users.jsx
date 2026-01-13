@@ -155,7 +155,8 @@ export default function Users() {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Gestión de Usuarios</h2>
           <button
-            className="btn btn-primary"
+            className="btn"
+            style={{ backgroundColor: '#0D5F2C', color: 'white' }}
             onClick={handleAddClick}
           >
             <i className="bi bi-plus-lg me-2"></i>

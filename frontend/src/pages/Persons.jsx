@@ -268,7 +268,8 @@ export default function Persons() {
           <h2>Gestión Vehicular</h2>
           {canEdit && (
             <button
-              className="btn btn-primary"
+              className="btn"
+              style={{ backgroundColor: '#0D5F2C', color: 'white' }}
               onClick={() => setShowAddModal(true)}
             >
               <i className="bi bi-plus-lg me-2"></i>
@@ -305,7 +306,8 @@ export default function Persons() {
                     onKeyDown={handleKeyDown}
                   />
                   <button
-                    className="btn btn-primary"
+                    className="btn"
+                    style={{ backgroundColor: '#0D5F2C', color: 'white' }}
                     type="button"
                     onClick={handleSearch}
                   >
@@ -329,7 +331,7 @@ export default function Persons() {
 
         {loading ? (
           <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status">
+            <div className="spinner-border" role="status" style={{ color: '#0D5F2C' }}>
               <span className="visually-hidden">Cargando...</span>
             </div>
           </div>
@@ -406,7 +408,8 @@ export default function Persons() {
                           {canEdit && (
                             <td>
                               <button
-                                className="btn btn-sm btn-primary"
+                                className="btn btn-sm"
+                                style={{ backgroundColor: '#0D5F2C', color: 'white' }}
                                 onClick={() => handleEditClick(person)}
                                 title="Editar persona"
                               >
@@ -670,7 +673,7 @@ export default function Persons() {
                     >
                       Cancelar
                     </button>
-                    <button type="submit" className="btn btn-primary">
+                    <button type="submit" className="btn" style={{ backgroundColor: '#0D5F2C', color: 'white' }}>
                       Agregar
                     </button>
                   </div>
@@ -838,7 +841,7 @@ export default function Persons() {
                     >
                       Cancelar
                     </button>
-                    <button type="submit" className="btn btn-primary">
+                    <button type="submit" className="btn" style={{ backgroundColor: '#0D5F2C', color: 'white' }}>
                       <i className="bi bi-save me-2"></i>
                       Guardar Cambios
                     </button>

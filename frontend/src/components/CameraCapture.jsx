@@ -128,7 +128,7 @@ const CameraCapture = forwardRef(({ isActive, onError, onCameraReady }, ref) => 
             />
             {!isReady && isActive && (
                 <div className="d-flex justify-content-center align-items-center" style={{ height: '300px', background: '#f8f9fa', borderRadius: '8px' }}>
-                    <div className="spinner-border text-primary" role="status">
+                    <div className="spinner-border" style={{ color: '#0D5F2C' }} role="status">
                         <span className="visually-hidden">Cargando cámara...</span>
                     </div>
                 </div>

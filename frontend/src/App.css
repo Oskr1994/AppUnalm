@@ -112,7 +112,7 @@
   height: 2px;
   bottom: -5px;
   left: 50%;
-  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff 100%);
   transition: all 0.3s ease;
 }
 
@@ -200,4 +200,18 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+}
+/* Personalización del botón de menú (Navbar Toggler) */
+.navbar-toggler {
+  transition: background-color 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.navbar-toggler:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* Fondo semi-transparente al pasar el mouse */
+}
+
+.navbar-toggler:focus {
+  box-shadow: none; /* Quitar borde de foco predeterminado */
 }

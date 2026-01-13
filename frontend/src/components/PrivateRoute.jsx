@@ -7,7 +7,7 @@ export const PrivateRoute = ({ children, roles = [] }) => {
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-        <div className="spinner-border text-primary" role="status">
+        <div className="spinner-border" style={{ color: '#0D5F2C' }} role="status">
           <span className="visually-hidden">Cargando...</span>
         </div>
       </div>

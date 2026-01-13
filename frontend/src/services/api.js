@@ -2,8 +2,9 @@ import axios from 'axios';
 
 
 
-// Usar ruta relativa para aprovechar el Proxy de Vite
-const API_URL = '/api';
+// Usar variable de entorno si existe (producción), sino usar relativa (proxy dev)
+// IMPORTANTE: Vite requiere que las variables empiecen con VITE_
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,

@@ -13,7 +13,7 @@ export default function Dashboard() {
           <div className="row mb-5">
             <div className="col-12">
               <div className="d-flex align-items-center mb-4">
-                <div className="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                <div className="rounded-circle p-3 me-3">
                   <i className="bi bi-house-door-fill fs-2" style={{ color: '#0D5F2C' }}></i>
                 </div>
                 <div>

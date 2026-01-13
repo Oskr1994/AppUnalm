@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import unalmLogo from '../images/unalm-logo-blanco.webp';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -18,14 +19,15 @@ export default function Navbar() {
       postulante: 'bg-dark bg-opacity-50',
       viewer: 'bg-dark bg-opacity-50',
     };
-    return badges[role] || 'bg-secondary';
+    return badges[role] || 'bg-dark bg-opacity-50';
   };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark shadow-lg" style={{ backgroundColor: '#0D5F2C' }}>
       <div className="container-fluid">
         <Link className="navbar-brand fw-bold d-flex align-items-center" to="/dashboard">
-          <i className="bi bi-shield-check-fill me-2"><img src="/src/images/unalm-logo-blanco.webp" width={250}></img>  </i>
+          <i className="bi bi-shield-check-fill me-2"></i>
+          <img src={unalmLogo} width={250} alt="Logo UNALM" />
         </Link>
 
         <button
@@ -49,7 +51,7 @@ export default function Navbar() {
               <li className="nav-item">
                 <Link className="nav-link d-flex align-items-center" to="/persons">
                   <i className="bi bi-people me-1"></i>
-                  Personas
+                  Vehiculos
                 </Link>
               </li>
             )}
@@ -57,7 +59,7 @@ export default function Navbar() {
               <li className="nav-item">
                 <Link className="nav-link d-flex align-items-center" to="/pedestrian">
                   <i className="bi bi-person-walking me-1"></i>
-                  Peatonal
+                  Peatones
                 </Link>
               </li>
             )}
