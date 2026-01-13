@@ -279,3 +279,16 @@ Usando cache de vehículos (válido por 38s)
 INFO:     127.0.0.1:42344 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
 Usando cache de vehículos (válido por 38s)
 INFO:     127.0.0.1:42350 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     172.16.0.38:48000 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:55876 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55882 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 97
+Mapeo creado con 84 personas
+Tiempo de carga de vehículos: 0.06s
+INFO:     127.0.0.1:55884 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55900 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 59s)
+INFO:     127.0.0.1:55904 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55902 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
