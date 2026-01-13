@@ -292,3 +292,41 @@ INFO:     127.0.0.1:55900 - "GET /api/persons/organizations/list HTTP/1.1" 200 O
 Usando cache de vehículos (válido por 59s)
 INFO:     127.0.0.1:55904 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:55902 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40300 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40310 - "GET /api/auth/me HTTP/1.1" 200 OK
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 97
+Mapeo creado con 84 personas
+Tiempo de carga de vehículos: 0.06s
+INFO:     127.0.0.1:40316 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40320 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40324 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 59s)
+INFO:     127.0.0.1:40340 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40346 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40356 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40392 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40378 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 53s)
+INFO:     127.0.0.1:40370 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40398 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 53s)
+INFO:     127.0.0.1:40400 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40404 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 53s)
+INFO:     127.0.0.1:40406 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40416 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 53s)
+INFO:     127.0.0.1:40422 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40434 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40460 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 52s)
+INFO:     127.0.0.1:40448 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40464 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 52s)
+INFO:     127.0.0.1:40470 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 52s)
+INFO:     127.0.0.1:40486 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 52s)
+INFO:     127.0.0.1:40492 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
