@@ -94,7 +94,9 @@ export default function Users() {
       if (editingUser) {
         // Edit mode
         const dataToSend = { ...formData };
-        delete dataToSend.password; // Don't send empty password on edit
+        if (!dataToSend.password) {
+          delete dataToSend.password; // Don't send empty password on edit
+        }
         delete dataToSend.username; // Username usually shouldn't be changed or needs backend support
 
         await authService.updateUser(editingUser.id, dataToSend);
@@ -298,20 +300,19 @@ export default function Users() {
                       />
                     </div>
 
-                    {!editingUser && (
-                      <div className="mb-3">
-                        <label className="form-label">Contraseña *</label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          required
-                          minLength="6"
-                        />
-                        <small className="text-muted">Mínimo 6 caracteres</small>
-                      </div>
-                    )}
+                    <div className="mb-3">
+                      <label className="form-label">Contraseña {editingUser ? '(Opcional)' : '*'}</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required={!editingUser}
+                        minLength="6"
+                        placeholder={editingUser ? 'Dejar en blanco para mantener actual' : ''}
+                      />
+                      <small className="text-muted">Mínimo 6 caracteres</small>
+                    </div>
 
                     <div className="mb-3">
                       <label className="form-label">Rol *</label>

@@ -33,3 +33,15 @@ class Permission(Base):
     description = Column(String)
     
     users = relationship("User", secondary=user_permissions, back_populates="permissions")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    action = Column(String, nullable=False)  # CREATE, UPDATE, DELETE
+    module = Column(String, nullable=False)  # PERSONAS, VEHICULOS, AUTH
+    details = Column(String)  # JSON string or text description
+    timestamp = Column(DateTime, default=datetime.now)
+    
+    user = relationship("User")

@@ -7,6 +7,7 @@ import Persons from './pages/Persons';
 import Pedestrian from './pages/Pedestrian';
 import Users from './pages/Users';
 import Postulant from './pages/Postulant';
+import AuditLogs from './pages/AuditLogs';
 import './App.css';
 
 function App() {
@@ -52,6 +53,14 @@ function App() {
             element={
               <PrivateRoute roles={['admin', 'postulante']}>
                 <Postulant />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/registros"
+            element={
+              <PrivateRoute roles={['admin']}>
+                <AuditLogs />
               </PrivateRoute>
             }
           />

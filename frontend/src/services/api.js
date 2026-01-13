@@ -156,6 +156,26 @@ export const personService = {
   },
 };
 
+// Audit services
+export const auditService = {
+  listLogs: async (page = 0, limit = 20, filters = {}) => {
+    const skip = page * limit;
+    let url = `/audit-logs/?skip=${skip}&limit=${limit}`;
+
+    if (filters.userId) url += `&user_id=${filters.userId}`;
+    if (filters.startDate) url += `&start_date=${filters.startDate}`;
+    if (filters.endDate) url += `&end_date=${filters.endDate}`;
+
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  listUsers: async () => {
+    const response = await api.get('/audit-logs/users');
+    return response.data;
+  }
+};
+
 // External services
 export const externalService = {
   consultDni: async (dni) => {

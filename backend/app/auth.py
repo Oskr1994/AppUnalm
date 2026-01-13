@@ -113,6 +113,13 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
         return None
     
     update_data = user_update.dict(exclude_unset=True)
+    
+    # Si se envía password, hashearla y quitarla del dict plano
+    if "password" in update_data:
+        password = update_data.pop("password")
+        if password: # Solo si no está vacía
+            update_data["hashed_password"] = get_password_hash(password)
+
     for key, value in update_data.items():
         setattr(db_user, key, value)
     

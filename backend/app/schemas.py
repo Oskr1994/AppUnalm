@@ -17,6 +17,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    password: Optional[str] = None
 
 class UserInDB(UserBase):
     id: int
@@ -71,3 +72,22 @@ class MessageResponse(BaseModel):
     message: str
     success: bool
     data: Optional[dict] = None
+
+# Audit Log Schemas
+class AuditLogBase(BaseModel):
+    action: str
+    module: str
+    details: Optional[str] = None
+
+class AuditLogCreate(AuditLogBase):
+    user_id: int
+
+class AuditLogResponse(AuditLogBase):
+    id: int
+    user_id: int
+    timestamp: datetime
+    # Nested user to show name
+    username: Optional[str] = None
+    
+    class Config:
+        from_attributes = True

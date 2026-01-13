@@ -79,6 +79,14 @@ export default function Navbar() {
                 </Link>
               </li>
             )}
+            {user?.role === 'admin' && (
+              <li className="nav-item">
+                <Link className="nav-link d-flex align-items-center" to="/registros">
+                  <i className="bi bi-journal-text me-1"></i>
+                  Registros
+                </Link>
+              </li>
+            )}
           </ul>
 
           <div className="d-flex align-items-center">

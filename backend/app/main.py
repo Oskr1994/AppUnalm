@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth_routes, person_routes
+from .routers import auth_routes, person_routes, audit_routes
 from .config import settings
 from . import models, auth
 from .database import SessionLocal
@@ -9,11 +9,7 @@ from .database import SessionLocal
 # Crear tablas
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="HikCentral Management API",
-    description="API para gestión de personas en HikCentral con autenticación y roles",
-    version="1.0.0"
-)
+app = FastAPI(title="HikCentral Management API")
 
 # Configurar CORS
 app.add_middleware(
@@ -27,6 +23,7 @@ app.add_middleware(
 # Incluir routers
 app.include_router(auth_routes.router)
 app.include_router(person_routes.router)
+app.include_router(audit_routes.router)
 
 @app.on_event("startup")
 async def startup_event():

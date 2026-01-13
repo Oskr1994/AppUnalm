@@ -11,6 +11,7 @@ import difflib
 from .. import models, schemas, auth
 from ..database import get_db
 from ..hikcentral import hik_api
+from .. import audit
 
 router = APIRouter(prefix="/api/persons", tags=["Personas"])
 
@@ -34,6 +35,16 @@ async def add_person(
         "gender": person.gender,
         "orgIndexCode": person.orgIndexCode,
     }
+    
+    # Audit Log
+    db = Session.object_session(current_user)
+    audit.create_audit_log(
+        db, 
+        current_user.id, 
+        "CREATE", 
+        "PERSONAS", 
+        f"Creación de persona: {person.personGivenName} {person.personFamilyName} (Code: {person.personCode})"
+    )
     
     if person.position:
         person_data["position"] = person.position
@@ -265,6 +276,16 @@ async def upload_photo_endpoint(
         if not person_code or not face:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="personCode y faceData/photo son requeridos")
 
+        # Audit Log
+        db = Session.object_session(current_user)
+        audit.create_audit_log(
+            db, 
+            current_user.id, 
+            "UPDATE", 
+            "PERSONAS", 
+            f"Subida de foto para persona Code: {person_code}"
+        )
+
         # Si la imagen viene como data URL, extraer la parte base64
         if isinstance(face, str) and face.startswith("data:"):
             try:
@@ -293,6 +314,16 @@ async def update_person_endpoint(
     current_user: models.User = Depends(auth.require_role(["admin", "gestion_vehicular", "gestion_peatonal", "postulante"]))
 ):
     """Actualiza una persona existente en HikCentral (requiere rol admin, operador o personal_seguridad)"""
+    
+    # Audit Log
+    db = Session.object_session(current_user)
+    audit.create_audit_log(
+        db, 
+        current_user.id, 
+        "UPDATE", 
+        "PERSONAS", 
+        f"Actualización de persona ID: {person_id} ({person.personGivenName} {person.personFamilyName})"
+    )
     
     try:
         # Preparar datos base de la persona
