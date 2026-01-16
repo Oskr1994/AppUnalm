@@ -48,6 +48,10 @@ async def add_person(
     
     if person.position:
         person_data["position"] = person.position
+    if person.email:
+        person_data["email"] = person.email
+    if person.phoneNo:
+        person_data["phoneNo"] = person.phoneNo
     
     # PASO 1: Crear la persona primero
     print(f"DEBUG PASO 1: Creando persona con datos: {person_data}")
@@ -435,142 +439,127 @@ async def update_person_endpoint(
             except Exception as e:
                 print(f"Error al actualizar foto: {e}")
         
-        # PASO 3: Si hay plateNo, actualizar el vehículo
-        if person.plateNo and person.plateNo.strip():
-            print(f"Procesando actualización de vehículo con placa '{person.plateNo.strip()}'")
-            try:
-                from datetime import datetime, timedelta
+        # PASO 3: Gestión Inteligente de Vehículos (Soporte Multi-Vehículo con Fechas)
+        # Parsear la lista de vehículos
+        incoming_vehicles_map = {} # {plate: vehicle_obj}
+        
+        if person.vehicles:
+            for v in person.vehicles:
+                if v.plateNo and v.plateNo.strip():
+                     incoming_vehicles_map[v.plateNo.strip().upper()] = v
+        # Backward compatibility: si no hay vehicles pero hay plateNo (CSV)
+        elif person.plateNo:
+             plates = {p.strip().upper() for p in person.plateNo.split(',') if p.strip()}
+             for p in plates:
+                 # Usar fechas globales o defaults
+                 incoming_vehicles_map[p] = schemas.VehicleData(
+                     plateNo=p,
+                     effectiveDate=person.effectiveDate,
+                     expiredDate=person.expiredDate
+                 )
+            
+        print(f"Procesando actualización de vehículos. Placas solicitadas: {list(incoming_vehicles_map.keys())}")
+        
+        try:
+            from datetime import datetime, timedelta
+            
+            # Construir personName completo para búsqueda
+            person_name_clean = f"{person.personGivenName} {person.personFamilyName}".strip()
+            
+            # 1. Obtener vehículos existentes de esta persona desde HikCentral
+            print(f"Obteniendo vehículos actuales para '{person_name_clean}'...")
+            
+            current_vehicles = {} # {plateNo: vehicleId}
+            page = 1
+            
+            # Buscar en todas las páginas (limitado por seguridad)
+            while page <= 10: 
+                vehicles_response = hik_api.list_vehicles(page_no=page, page_size=200, vehicle_group_code="2")
                 
-                # Construir personName completo (añadir espacio al final como HikCentral lo guarda)
-                person_name_with_space = f"{person.personGivenName} {person.personFamilyName} "
-                person_name_clean = f"{person.personGivenName} {person.personFamilyName}".strip()
+                if str(vehicles_response.get("code")) != "0":
+                    print(f"Error al buscar vehículos: {vehicles_response.get('msg')}")
+                    break
                 
-                # Buscar el vehículo existente de esta persona para obtener vehicleId
-                print(f"Buscando vehicleId para personName: '{person_name_clean}'")
+                vehicles_data = vehicles_response.get("data", {})
+                vehicles_list = vehicles_data.get("list", [])
                 
-                vehicle_id = None
-                page = 1
-                while True:
-                    vehicles_response = hik_api.list_vehicles(page_no=page, page_size=200, vehicle_group_code="2")
-                    
-                    if str(vehicles_response.get("code")) != "0":
-                        print(f"Error al buscar vehículos: {vehicles_response.get('msg')}")
-                        break
-                    
-                    vehicles_data = vehicles_response.get("data", {})
-                    vehicles_list = vehicles_data.get("list", [])
-                    
-                    if not vehicles_list:
-                        break
-                    
-                    # Buscar el vehículo de esta persona
-                    for vehicle in vehicles_list:
-                        vehicle_person_name = vehicle.get("personName", "").strip()
-                        # Debug: mostrar todos los nombres para encontrar coincidencias
-                        if page == 1 and len(vehicles_list) < 10:  # Solo primeras 10 para no saturar logs
-                            print(f"  - VehicleId {vehicle.get('vehicleId')}: personName='{vehicle_person_name}'")
-                        
-                        # Comparar sin espacios finales
-                        if vehicle_person_name == person_name_clean or vehicle_person_name == person_name_clean.strip():
-                            vehicle_id = vehicle.get("vehicleId")
-                            print(f"✓ VehicleId encontrado: {vehicle_id} (personName en DB: '{vehicle.get('personName', '')}')")
-                            break
-                    
-                    if vehicle_id:
-                        break
-                    
-                    # Verificar si hay más páginas
-                    total = vehicles_data.get("total", 0)
-                    if page * 200 >= total:
-                        break
-                    page += 1
+                if not vehicles_list:
+                    break
                 
-                if not vehicle_id:
-                    print(f"No se encontró vehículo existente para '{person_name_clean}'")
-                    print(f"Creando nuevo vehículo con placa '{person.plateNo.strip()}'")
+                for vehicle in vehicles_list:
+                    v_person_name = vehicle.get("personName", "").strip()
+                    v_plate = vehicle.get("plateNo", "").strip().upper()
+                    v_id = vehicle.get("vehicleId")
                     
-                    # Crear nuevo vehículo usando personId
-                    if person.effectiveDate:
-                        effective_date = person.effectiveDate
-                    else:
-                        effective_date = datetime.now().strftime("%Y-%m-%dT00:00:00-05:00")
+                    # Verificar si pertenece a la persona actual
+                    if v_person_name == person_name_clean and v_plate:
+                        current_vehicles[v_plate] = v_id
+                
+                total = vehicles_data.get("total", 0)
+                if page * 200 >= total:
+                    break
+                page += 1
+            
+            print(f"Vehículos actuales en sistema: {list(current_vehicles.keys())}")
+            
+            # 2. Calcular diferencias
+            existing_plates = set(current_vehicles.keys())
+            incoming_plates = set(incoming_vehicles_map.keys())
+            
+            plates_to_add = incoming_plates - existing_plates
+            plates_to_delete = existing_plates - incoming_plates
+            
+            print(f"Placas a AGREGAR: {plates_to_add}")
+            print(f"Placas a ELIMINAR: {plates_to_delete}")
+            
+            # 3. Eliminar vehículos excedentes
+            if plates_to_delete:
+                ids_to_delete = [current_vehicles[p] for p in plates_to_delete]
+                print(f"Eliminando {len(ids_to_delete)} vehículos obsoletos...")
+                delete_response = hik_api.delete_vehicle(ids_to_delete)
+                
+                if str(delete_response.get("code")) != "0":
+                    print(f"Error al eliminar vehículos: {delete_response.get('msg')}")
+                else:
+                    print("✓ Vehículos eliminados correctamente")
+            
+            # 4. Agregar nuevos vehículos con sus fechas específicas
+            if plates_to_add:
+                print(f"Creando {len(plates_to_add)} nuevos vehículos...")
+                
+                for plate in plates_to_add:
+                    v_data = incoming_vehicles_map[plate]
                     
-                    if person.expiredDate:
-                        expired_date = person.expiredDate
-                    else:
-                        expired_date = (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT23:59:59-05:00")
+                    # Usar fecha específica del vehículo, o la global, o default
+                    eff_date = v_data.effectiveDate if v_data.effectiveDate else (person.effectiveDate if person.effectiveDate else datetime.now().strftime("%Y-%m-%dT00:00:00-05:00"))
+                    
+                    exp_date = v_data.expiredDate if v_data.expiredDate else (person.expiredDate if person.expiredDate else (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT23:59:59-05:00"))
                     
                     new_vehicle_data = {
-                        "plateNo": person.plateNo.strip(),
+                        "plateNo": plate,
                         "personId": str(person_id),
                         "plateArea": 0,
                         "vehicleGroupIndexCode": "2",
-                        "effectiveDate": effective_date,
-                        "expiredDate": expired_date
+                        "effectiveDate": eff_date,
+                        "expiredDate": exp_date
                     }
                     
-                    print(f"Body VEHICLE CREATE: {json.dumps(new_vehicle_data, indent=2)}")
-                    
+                    print(f"Creando vehículo placa '{plate}' con fechas {eff_date} - {exp_date}...")
                     create_response = hik_api.add_vehicle(new_vehicle_data)
-                    print(f"Respuesta vehicle create: {create_response}")
                     
                     if str(create_response.get("code")) != "0":
-                        error_msg = create_response.get('msg', 'Error desconocido')
-                        print(f"Error al crear vehículo: {error_msg}")
+                        print(f"Error al crear vehículo {plate}: {create_response.get('msg')}")
                     else:
-                        print(f"✓ Nuevo vehículo creado exitosamente")
-                        _vehicles_cache["expires_at"] = None
-                else:
-                    # Estrategia: eliminar el vehículo viejo y crear uno nuevo
-                    # Esto es más confiable que el endpoint update
-                    print(f"Eliminando vehículo antiguo (ID: {vehicle_id})")
-                    
-                    delete_response = hik_api.delete_vehicle([vehicle_id])
-                    print(f"Respuesta delete: {delete_response}")
-                    
-                    if str(delete_response.get("code")) != "0":
-                        print(f"Error al eliminar vehículo: {delete_response.get('msg')}")
-                    else:
-                        print(f"✓ Vehículo eliminado exitosamente")
-                        
-                        # Ahora crear el nuevo vehículo con la nueva placa
-                        print(f"Creando nuevo vehículo con placa '{person.plateNo.strip()}'")
-                        
-                        # Fechas de vigencia
-                        if person.effectiveDate:
-                            effective_date = person.effectiveDate
-                        else:
-                            effective_date = datetime.now().strftime("%Y-%m-%dT00:00:00-05:00")
-                        
-                        if person.expiredDate:
-                            expired_date = person.expiredDate
-                        else:
-                            expired_date = (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT23:59:59-05:00")
-                        
-                        # Crear nuevo vehículo usando personId
-                        new_vehicle_data = {
-                            "plateNo": person.plateNo.strip(),
-                            "personId": str(person_id),
-                            "plateArea": 0,
-                            "vehicleGroupIndexCode": "2",
-                            "effectiveDate": effective_date,
-                            "expiredDate": expired_date
-                        }
-                        
-                        print(f"Body VEHICLE CREATE: {json.dumps(new_vehicle_data, indent=2)}")
-                        
-                        create_response = hik_api.add_vehicle(new_vehicle_data)
-                        print(f"Respuesta vehicle create: {create_response}")
-                        
-                        if str(create_response.get("code")) != "0":
-                            error_msg = create_response.get('msg', 'Error desconocido')
-                            print(f"Error al crear nuevo vehículo: {error_msg}")
-                        else:
-                            print(f"✓ Nuevo vehículo creado exitosamente")
-                            # Invalidar cache de vehículos
-                            _vehicles_cache["expires_at"] = None
-            except Exception as e:
-                print(f"Error al actualizar vehículo: {str(e)}")
+                        print(f"✓ Vehículo {plate} creado exitosamente")
+            
+            # Invalidar cache
+            if plates_to_add or plates_to_delete:
+                _vehicles_cache["expires_at"] = None
+                
+        except Exception as e:
+            print(f"Error en la gestión de vehículos: {str(e)}")
+            import traceback
+            traceback.print_exc()
         
         return {
             "message": "Persona actualizada exitosamente",
@@ -629,7 +618,7 @@ async def list_persons(
         # Si no, obtener desde API y cachear
         print("Cache expirado, obteniendo vehículos desde API...")
         start = time.time()
-        vehicles_map = {}
+        vehicles_map = {} # {personName: [ {plate, start, end} ]}
         
         try:
             # Obtener primera página para saber el total
@@ -676,14 +665,21 @@ async def list_persons(
             
             print(f"Total vehículos obtenidos: {len(all_vehicles)}")
             
-            # Crear mapeo de personName a placas
+            # Crear mapeo de personName a objetos vehículo
             for vehicle in all_vehicles:
                 person_name = vehicle.get("personName", "").strip()
                 plate_no = vehicle.get("plateNo", "").strip()
                 if person_name and plate_no:
                     if person_name not in vehicles_map:
                         vehicles_map[person_name] = []
-                    vehicles_map[person_name].append(plate_no)
+                    
+                    # Guardar objeto completo
+                    vehicles_map[person_name].append({
+                        "plateNo": plate_no,
+                        "effectiveDate": vehicle.get("effectiveDate"),
+                        "expiredDate": vehicle.get("expiredDate"),
+                        "vehicleId": vehicle.get("vehicleId")
+                    })
             
             print(f"Mapeo creado con {len(vehicles_map)} personas")
             
@@ -711,10 +707,15 @@ async def list_persons(
             dni = extract_dni(p)
             p["certificateNumber"] = dni
             
-            # Asignar placas desde el mapeo
+            # Asignar placas y vehículos desde el mapeo
             person_name = p.get("personName", "").strip()
-            plates = vehicles_map.get(person_name, [])
-            p["plateNo"] = ", ".join(plates) if plates else ""
+            vehicles = vehicles_map.get(person_name, [])
+            
+            # Campo legacy: string de placas separadas por coma
+            p["plateNo"] = ", ".join([v["plateNo"] for v in vehicles]) if vehicles else ""
+            
+            # Nuevo campo: lista de objetos vehículo
+            p["vehicles"] = vehicles
             
             processed.append(p)
         

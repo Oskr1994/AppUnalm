@@ -21,6 +21,7 @@ export default function Postulant() {
         gender: '1',
         certificateNumber: '',
         phoneNo: '',
+        email: '',
         orgIndexCode: '1',
     });
     const [selectedAccessGroups, setSelectedAccessGroups] = useState(['2']);
@@ -499,6 +500,7 @@ export default function Postulant() {
 
             const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.9);
             setPhotoDataUrl(dataUrl);
+            stopCamera(); // Detener cámara al capturar
             setCameraError('');
 
         } catch (error) {
@@ -557,7 +559,7 @@ export default function Postulant() {
 
                 setSuccess('¡Postulación exitosa! Sus datos han sido registrados.');
                 setShowAddModal(false);
-                setFormData({ personGivenName: '', personFamilyName: '', personCode: '', gender: '1', certificateNumber: '', phoneNo: '', orgIndexCode: postulantOrgId || '1' });
+                setFormData({ personGivenName: '', personFamilyName: '', personCode: '', gender: '1', certificateNumber: '', phoneNo: '', email: '', orgIndexCode: postulantOrgId || '1' });
                 setPhotoDataUrl(null);
                 setSelectedAccessGroups(['2']);
                 // No recargamos la lista porque es vista de postulante
@@ -629,11 +631,12 @@ export default function Postulant() {
                                                 <button type="button" className="btn btn-outline-secondary" onClick={handleConsultDni}>Consultar</button>
                                             </div>
                                         </div>
-                                        <div className="mb-3"><label className="form-label fw-bold">Nombres</label><input type="text" className="form-control bg-light" value={formData.personGivenName} readOnly /></div>
-                                        <div className="mb-3"><label className="form-label fw-bold">Apellidos</label><input type="text" className="form-control bg-light" value={formData.personFamilyName} readOnly /></div>
+                                        <div className="mb-3"><label className="form-label fw-bold">Nombres</label><input type="text" className="form-control" value={formData.personGivenName} onChange={e => setFormData({ ...formData, personGivenName: e.target.value })} /></div>
+                                        <div className="mb-3"><label className="form-label fw-bold">Apellidos</label><input type="text" className="form-control" value={formData.personFamilyName} onChange={e => setFormData({ ...formData, personFamilyName: e.target.value })} /></div>
                                         <div className="mb-3"><label className="form-label fw-bold">Teléfono</label><input type="text" className="form-control" value={formData.phoneNo} onChange={e => setFormData({ ...formData, phoneNo: e.target.value })} /></div>
+                                        <div className="mb-3"><label className="form-label fw-bold">Correo Electrónico</label><input type="email" className="form-control" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} /></div>
                                         <div className="mb-3">
-                                            <label className="form-label fw-bold">Organización</label>
+                                            <label className="form-label fw-bold">Departamento/Facultad</label>
                                             <input type="text" className="form-control bg-light" value="Postulante" readOnly />
                                         </div>
                                     </div>
@@ -642,7 +645,7 @@ export default function Postulant() {
                                         <div className="mb-3">
                                             <label className="form-label fw-bold text-center w-100">Foto</label>
                                             <div className="d-flex flex-column align-items-center gap-2 border p-3 rounded bg-light">
-                                                {!cameraActive && (
+                                                {!cameraActive && !photoDataUrl && (
                                                     <div className="text-center py-5">
                                                         <i className="bi bi-camera-video fs-1 text-muted mb-3 d-block"></i>
                                                         <button
@@ -696,9 +699,15 @@ export default function Postulant() {
                                                     </div>
                                                 )}
 
-                                                <button type="button" className="btn btn-outline-secondary btn-sm mt-2" onClick={restartCamera}>
-                                                    <i className="bi bi-arrow-clockwise me-1"></i> Reiniciar Prueba
-                                                </button>
+                                                {(cameraActive || photoDataUrl) && (
+                                                    <button type="button" className="btn btn-outline-secondary btn-sm mt-2" onClick={() => {
+                                                        setPhotoDataUrl(null);
+                                                        setCameraActive(true);
+                                                        restartCamera();
+                                                    }}>
+                                                        <i className="bi bi-arrow-clockwise me-1"></i> Reiniciar Prueba
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

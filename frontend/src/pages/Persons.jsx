@@ -40,6 +40,11 @@ export default function Persons() {
   const [modalError, setModalError] = useState('');
   const [modalSuccess, setModalSuccess] = useState('');
 
+  // Estado para gestión de múltiples placas
+  // Estado para gestión de múltiples vehículos
+  const [vehicleList, setVehicleList] = useState([]);
+  const [newVehicle, setNewVehicle] = useState({ plateNo: '', effectiveDate: '', expiredDate: '' });
+
   useEffect(() => {
     loadPersons();
     loadOrganizations();
@@ -199,6 +204,31 @@ export default function Persons() {
 
   const handleEditClick = (person) => {
     setSelectedPerson(person);
+
+    // Inicializar lista de placas separando por comas
+    // Inicializar lista de vehículos
+    // Si viene vehicles (lista de objetos), usarla. Si no, parsear plateNo por compatibilidad
+    let initialVehicles = [];
+    if (person.vehicles && Array.isArray(person.vehicles) && person.vehicles.length > 0) {
+      initialVehicles = person.vehicles.map(v => ({
+        plateNo: v.plateNo,
+        // Mantener la fecha completa (ISO) para el input datetime-local (cortar la Z o offset si es necesario para el input)
+        // input datetime-local espera formato 'YYYY-MM-DDTHH:mm'
+        effectiveDate: v.effectiveDate ? v.effectiveDate.substring(0, 16) : '',
+        expiredDate: v.expiredDate ? v.expiredDate.substring(0, 16) : ''
+      }));
+    } else if (person.plateNo) {
+      initialVehicles = person.plateNo.split(',').map(p => ({
+        plateNo: p.trim(),
+        // Usar fechas globales como default
+        effectiveDate: person.beginTime ? person.beginTime.substring(0, 16) : '',
+        expiredDate: person.endTime ? person.endTime.substring(0, 16) : ''
+      })).filter(v => v.plateNo);
+    }
+
+    setVehicleList(initialVehicles);
+    setNewVehicle({ plateNo: '', effectiveDate: '', expiredDate: '' });
+
     setEditData({
       personGivenName: person.personGivenName || '',
       personFamilyName: person.personFamilyName || '',
@@ -209,8 +239,8 @@ export default function Persons() {
       orgIndexCode: person.orgIndexCode || '1',
       certificateNumber: person.certificateNumber || '',
       plateNo: person.plateNo || '',
-      effectiveDate: '',
-      expiredDate: '',
+      effectiveDate: person.beginTime || '',
+      expiredDate: person.endTime || '',
     });
     setShowEditModal(true);
   };
@@ -224,11 +254,24 @@ export default function Persons() {
       // Preparar datos para enviar
       const dataToSend = { ...editData };
 
-      // Convertir fechas al formato ISO requerido por la API
-      if (dataToSend.effectiveDate) {
+      // Concatenar placas para enviar al backend
+      // Enviar lista de vehículos
+      dataToSend.vehicles = vehicleList.map(v => ({
+        plateNo: v.plateNo,
+        // Asegurar formato ISO con timezone para backend
+        effectiveDate: v.effectiveDate ? `${v.effectiveDate}:00-05:00` : '',
+        expiredDate: v.expiredDate ? `${v.expiredDate}:00-05:00` : ''
+      }));
+
+      // Mantener plateNo como CSV por compatibilidad visual en lista
+      dataToSend.plateNo = vehicleList.map(v => v.plateNo).join(',');
+
+      // Convertir fechas al formato ISO requerido por la API SOLO si son cadenas de fecha tipo YYYY-MM-DD
+      // Evitar crash si es number o ya tiene formato ISO
+      if (typeof dataToSend.effectiveDate === 'string' && !dataToSend.effectiveDate.includes('T') && dataToSend.effectiveDate.length > 0) {
         dataToSend.effectiveDate = `${dataToSend.effectiveDate}T00:00:00-05:00`;
       }
-      if (dataToSend.expiredDate) {
+      if (typeof dataToSend.expiredDate === 'string' && !dataToSend.expiredDate.includes('T') && dataToSend.expiredDate.length > 0) {
         dataToSend.expiredDate = `${dataToSend.expiredDate}T23:59:59-05:00`;
       }
 
@@ -348,7 +391,7 @@ export default function Persons() {
                       <th>Placa</th>
                       <th className="d-none d-lg-table-cell">Fecha Inicio</th>
                       <th className="d-none d-lg-table-cell">Fecha Fin</th>
-                      <th className="d-none d-lg-table-cell">Organización</th>
+                      <th className="d-none d-lg-table-cell">Departamento/Facultad</th>
                       {canEdit && <th>Acciones</th>}
                     </tr>
                   </thead>
@@ -651,7 +694,7 @@ export default function Persons() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label">Organización</label>
+                      <label className="form-label">Departamento/Facultad</label>
                       <select
                         className="form-select"
                         value={formData.orgIndexCode}
@@ -702,136 +745,129 @@ export default function Persons() {
                   <div className="modal-body">
                     <div className="alert alert-info">
                       <i className="bi bi-info-circle me-2"></i>
-                      Seleccione los campos que desea modificar
+                      Información de la Persona
                     </div>
 
+                    {/* Nombre Completo - Solo Lectura */}
                     <div className="mb-3">
-                      <label className="form-label">Código de Persona</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={selectedPerson.personCode}
-                        disabled
-                      />
-                      <small className="text-muted">Este campo no se puede modificar</small>
+                      <label className="form-label fw-bold">Nombre Completo</label>
+                      <p className="form-control-plaintext border-bottom">
+                        {`${editData.personGivenName} ${editData.personFamilyName}`.trim()}
+                      </p>
                     </div>
 
+                    {/* DNI - Solo Lectura */}
                     <div className="mb-3">
-                      <label className="form-label">Nombre</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editData.personGivenName}
-                        onChange={(e) => setEditData({ ...editData, personGivenName: e.target.value })}
-                        placeholder="Nombre(s)"
-                      />
+                      <label className="form-label fw-bold">DNI / Documento</label>
+                      <p className="form-control-plaintext border-bottom">
+                        {editData.certificateNumber || 'N/A'}
+                      </p>
                     </div>
 
-                    <div className="mb-3">
-                      <label className="form-label">Apellido</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editData.personFamilyName}
-                        onChange={(e) => setEditData({ ...editData, personFamilyName: e.target.value })}
-                        placeholder="Apellido(s)"
-                      />
+                    {/* Sección de Vehículos */}
+                    <div className="mb-4 mt-4">
+                      <h6 className="border-bottom pb-2">Vehículos Registrados</h6>
+                      <div className="card bg-light">
+                        <div className="card-body">
+                          {vehicleList.length > 0 ? (
+                            <div className="table-responsive mb-3">
+                              <table className="table table-sm table-bordered bg-white">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Placa</th>
+                                    <th>Inicio</th>
+                                    <th>Fin</th>
+                                    <th>Acción</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {vehicleList.map((vehicle, index) => (
+                                    <tr key={index}>
+                                      <td className="align-middle fw-bold">{vehicle.plateNo}</td>
+                                      <td className="align-middle">{vehicle.effectiveDate ? vehicle.effectiveDate.replace('T', ' ') : '-'}</td>
+                                      <td className="align-middle">{vehicle.expiredDate ? vehicle.expiredDate.replace('T', ' ') : '-'}</td>
+                                      <td className="align-middle text-center">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm text-danger"
+                                          onClick={() => {
+                                            const newVehicles = vehicleList.filter((_, i) => i !== index);
+                                            setVehicleList(newVehicles);
+                                          }}
+                                          title="Eliminar vehículo"
+                                        >
+                                          <i className="bi bi-trash"></i>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-center text-muted py-2 mb-3">
+                              <small>No tiene vehículos registrados</small>
+                            </div>
+                          )}
+
+                          <div className="border-top pt-3">
+                            <label className="form-label small text-muted fw-bold">Agregar Nuevo Vehículo</label>
+                            <div className="row g-2 align-items-end">
+                              <div className="col-md-4">
+                                <label className="small text-muted">Placa</label>
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  value={newVehicle.plateNo}
+                                  onChange={(e) => setNewVehicle({ ...newVehicle, plateNo: e.target.value.toUpperCase() })}
+                                  placeholder="ABC-123"
+                                />
+                              </div>
+                              <div className="col-md-3">
+                                <label className="small text-muted">Inicio</label>
+                                <input
+                                  type="datetime-local"
+                                  className="form-control form-control-sm"
+                                  value={newVehicle.effectiveDate}
+                                  onChange={(e) => setNewVehicle({ ...newVehicle, effectiveDate: e.target.value })}
+                                />
+                              </div>
+                              <div className="col-md-3">
+                                <label className="small text-muted">Fin</label>
+                                <input
+                                  type="datetime-local"
+                                  className="form-control form-control-sm"
+                                  value={newVehicle.expiredDate}
+                                  onChange={(e) => setNewVehicle({ ...newVehicle, expiredDate: e.target.value })}
+                                />
+                              </div>
+                              <div className="col-md-2">
+                                <button
+                                  className="btn btn-sm btn-primary w-100"
+                                  type="button"
+                                  onClick={() => {
+                                    if (newVehicle.plateNo.trim()) {
+                                      // Validar duplicados
+                                      if (!vehicleList.some(v => v.plateNo === newVehicle.plateNo.trim())) {
+                                        setVehicleList([...vehicleList, { ...newVehicle, plateNo: newVehicle.plateNo.trim() }]);
+                                        setNewVehicle({ plateNo: '', effectiveDate: '', expiredDate: '' });
+                                      } else {
+                                        alert('Esta placa ya está en la lista');
+                                      }
+                                    } else {
+                                      alert('Ingrese una placa');
+                                    }
+                                  }}
+                                >
+                                  <i className="bi bi-plus-lg"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="mb-3">
-                      <label className="form-label">DNI/Documento</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editData.certificateNumber}
-                        onChange={(e) => setEditData({ ...editData, certificateNumber: e.target.value })}
-                        placeholder="Número de documento"
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Género</label>
-                      <select
-                        className="form-select"
-                        value={editData.gender}
-                        onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
-                      >
-                        <option value="0">No especificado</option>
-                        <option value="1">Masculino</option>
-                        <option value="2">Femenino</option>
-                      </select>
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Teléfono</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editData.phoneNo}
-                        onChange={(e) => setEditData({ ...editData, phoneNo: e.target.value })}
-                        placeholder="Número de teléfono"
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Email</label>
-                      <input
-                        type="email"
-                        className="form-control"
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                        placeholder="Correo electrónico"
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Placa del Vehículo</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editData.plateNo}
-                        onChange={(e) => setEditData({ ...editData, plateNo: e.target.value })}
-                        placeholder="Ej: ABC123"
-                      />
-                      <small className="text-muted">Placa actual: {selectedPerson.plateNo || 'Sin vehículo'}</small>
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Fecha Inicio de Vigencia</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={editData.effectiveDate}
-                        onChange={(e) => setEditData({ ...editData, effectiveDate: e.target.value })}
-                      />
-                      <small className="text-muted">Opcional - Solo si actualizó la placa. Por defecto: hoy</small>
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Fecha Fin de Vigencia</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={editData.expiredDate}
-                        onChange={(e) => setEditData({ ...editData, expiredDate: e.target.value })}
-                      />
-                      <small className="text-muted">Opcional - Solo si actualizó la placa. Por defecto: +2 años</small>
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Organización</label>
-                      <select
-                        className="form-select"
-                        value={editData.orgIndexCode}
-                        onChange={(e) => setEditData({ ...editData, orgIndexCode: e.target.value })}
-                      >
-                        {organizations.map((org) => (
-                          <option key={org.orgIndexCode} value={org.orgIndexCode}>
-                            {org.orgName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                   <div className="modal-footer">
                     <button
@@ -842,16 +878,17 @@ export default function Persons() {
                       Cancelar
                     </button>
                     <button type="submit" className="btn" style={{ backgroundColor: '#0D5F2C', color: 'white' }}>
-                      <i className="bi bi-save me-2"></i>
                       Guardar Cambios
                     </button>
                   </div>
                 </form>
+
               </div>
-            </div>
-          </div>
-        )}
-      </div>
+            </div >
+          </div >
+        )
+        }
+      </div >
     </>
   );
 }

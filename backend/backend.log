@@ -1,19 +1,106 @@
 nohup: no se tendrá en cuenta la entrada
-INFO:     Started server process [194290]
+INFO:     Will watch for changes in these directories: ['/home/admin/APP_UNALM/AppUnalm/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1372248] using WatchFiles
+INFO:     Started server process [1372250]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     10.212.0.55:50539 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.212.0.55:50539 - "GET /api/audit-logs/users HTTP/1.1" 200 OK
-INFO:     10.212.0.55:51098 - "GET /api/audit-logs/?skip=0&limit=20 HTTP/1.1" 200 OK
-INFO:     10.212.0.55:51098 - "OPTIONS /api/persons/access-levels/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44660 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44666 - "GET /api/auth/me HTTP/1.1" 200 OK
 Cache expirado, obteniendo vehículos desde API...
 Obteniendo página 1 de vehículos...
-Total vehículos obtenidos: 97
-Mapeo creado con 84 personas
-Tiempo de carga de vehículos: 0.06s
-INFO:     10.212.0.55:50539 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
-INFO:     10.212.0.55:51098 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
-INFO:     10.212.0.55:53246 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
-INFO:     10.212.0.55:53913 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.212.0.55:53913 - "GET /api/auth/me HTTP/1.1" 200 OK
+Total vehículos obtenidos: 132
+Mapeo creado con 104 personas
+Tiempo de carga de vehículos: 0.07s
+INFO:     127.0.0.1:44670 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44680 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 59s)
+INFO:     127.0.0.1:44694 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44706 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 52s)
+INFO:     127.0.0.1:42452 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42462 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42470 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 52s)
+INFO:     127.0.0.1:42484 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42476 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42500 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43448 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43460 - "GET /api/auth/me HTTP/1.1" 200 OK
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 132
+Mapeo creado con 104 personas
+Tiempo de carga de vehículos: 0.07s
+INFO:     127.0.0.1:43472 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43486 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43498 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 59s)
+INFO:     127.0.0.1:43512 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43528 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43530 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54500 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54514 - "GET /api/auth/me HTTP/1.1" 200 OK
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 132
+Mapeo creado con 104 personas
+Tiempo de carga de vehículos: 0.07s
+INFO:     127.0.0.1:54524 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54526 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54532 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 59s)
+INFO:     127.0.0.1:54548 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54558 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54566 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Iniciando búsqueda optimizada para: 'oscar perez'
+Obteniendo página 1 de personas...
+Total personas: 9498. Páginas totales: 95
+Obteniendo 94 páginas de personas en paralelo...
+Total personas recuperadas: 9498. Tiempo descarga: 3.22s
+Personas tras filtrado y límite: 1
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 132
+Mapeo creado con 104 personas
+Tiempo de carga de vehículos: 0.07s
+INFO:     127.0.0.1:36598 - "GET /api/persons/list?page_no=1&page_size=100&search=oscar+perez HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36604 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36614 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Actualizando persona 20321
+✓ Persona actualizada exitosamente
+Procesando actualización de vehículos. Placas solicitadas: ['CMK610', 'HOLA12']
+Obteniendo vehículos actuales para 'Oscar Perez'...
+Vehículos actuales en sistema: ['CMK610']
+Placas a AGREGAR: {'HOLA12'}
+Placas a ELIMINAR: set()
+Creando 1 nuevos vehículos...
+Creando vehículo placa 'HOLA12' con fechas 2026-01-15T15:55:46-05:00 - 2026-01-16T18:00:00-05:00...
+✓ Vehículo HOLA12 creado exitosamente
+INFO:     127.0.0.1:45258 - "PUT /api/persons/update/20321 HTTP/1.1" 200 OK
+Iniciando búsqueda optimizada para: 'oscar perez'
+Obteniendo página 1 de personas...
+Total personas: 9498. Páginas totales: 95
+Obteniendo 94 páginas de personas en paralelo...
+Total personas recuperadas: 9498. Tiempo descarga: 3.20s
+Personas tras filtrado y límite: 1
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 133
+Mapeo creado con 104 personas
+Tiempo de carga de vehículos: 0.07s
+INFO:     127.0.0.1:45266 - "GET /api/persons/list?page_no=1&page_size=100&search=oscar+perez HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45106 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45118 - "GET /api/auth/me HTTP/1.1" 200 OK
+Cache expirado, obteniendo vehículos desde API...
+Obteniendo página 1 de vehículos...
+Total vehículos obtenidos: 133
+Mapeo creado con 104 personas
+Tiempo de carga de vehículos: 0.07s
+INFO:     127.0.0.1:45126 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45142 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45150 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK
+Usando cache de vehículos (válido por 59s)
+INFO:     127.0.0.1:45152 - "GET /api/persons/list?page_no=1&page_size=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45158 - "GET /api/persons/organizations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45162 - "GET /api/persons/access-levels/list HTTP/1.1" 200 OK

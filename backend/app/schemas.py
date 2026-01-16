@@ -39,6 +39,12 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 # HikCentral Person Schemas
+class VehicleData(BaseModel):
+    plateNo: str
+    effectiveDate: Optional[str] = None
+    expiredDate: Optional[str] = None
+    vehicleId: Optional[str] = None
+
 class PersonCreate(BaseModel):
     personGivenName: str
     personFamilyName: str
@@ -50,9 +56,10 @@ class PersonCreate(BaseModel):
     orgIndexCode: str = "1"
     phoneNo: Optional[str] = None
     email: Optional[str] = None
-    plateNo: Optional[str] = None  # Placa del vehículo
-    effectiveDate: Optional[str] = None  # Fecha de inicio de vigencia
-    expiredDate: Optional[str] = None  # Fecha de fin de vigencia
+    plateNo: Optional[str] = None  # Placa del vehículo (backward compat)
+    vehicles: Optional[List[VehicleData]] = None # Lista de vehículos
+    effectiveDate: Optional[str] = None  # Fecha de inicio de vigencia (default)
+    expiredDate: Optional[str] = None  # Fecha de fin de vigencia (default)
 
 class PersonResponse(BaseModel):
     personCode: str
@@ -61,6 +68,7 @@ class PersonResponse(BaseModel):
     gender: Optional[str] = None
     position: Optional[str] = None
     orgIndexCode: Optional[str] = None
+    vehicles: Optional[List[VehicleData]] = None
 
 class AccessLevelAssign(BaseModel):
     personCode: str
